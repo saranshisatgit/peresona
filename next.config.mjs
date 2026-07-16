@@ -6,6 +6,18 @@ const nextConfig = {
   outputFileTracingIncludes: {
     '/articles/*': ['./src/app/articles/**/*.mdx'],
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.cloud.appwrite.io',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.appwrite.io',
+      },
+    ],
+  },
 }
 
 const withMDX = nextMDX({

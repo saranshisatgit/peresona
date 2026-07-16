@@ -16,6 +16,10 @@ import clsx from 'clsx'
 import { Container } from '@/components/Container'
 import avatarImage from '@/images/avatar.jpg'
 
+interface HeaderProps {
+  avatarUrl?: string
+}
+
 function CloseIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>
@@ -220,9 +224,11 @@ function AvatarContainer({
 function Avatar({
   large = false,
   className,
+  src,
   ...props
 }: Omit<React.ComponentPropsWithoutRef<typeof Link>, 'href'> & {
   large?: boolean
+  src?: string
 }) {
   return (
     <Link
@@ -232,7 +238,7 @@ function Avatar({
       {...props}
     >
       <Image
-        src={avatarImage}
+        src={src || avatarImage}
         alt=""
         sizes={large ? '4rem' : '2.25rem'}
         className={clsx(
@@ -240,12 +246,13 @@ function Avatar({
           large ? 'h-16 w-16' : 'h-9 w-9',
         )}
         priority
+        unoptimized={!!src}
       />
     </Link>
   )
 }
 
-export function Header() {
+export function Header({ avatarUrl }: HeaderProps) {
   let isHomePage = usePathname() === '/'
 
   let headerRef = useRef<React.ElementRef<'div'>>(null)
@@ -391,6 +398,7 @@ export function Header() {
                   />
                   <Avatar
                     large
+                    src={avatarUrl}
                     className="block h-16 w-16 origin-left"
                     style={{ transform: 'var(--avatar-image-transform)' }}
                   />
@@ -418,7 +426,7 @@ export function Header() {
               <div className="flex flex-1">
                 {!isHomePage && (
                   <AvatarContainer>
-                    <Avatar />
+                    <Avatar src={avatarUrl} />
                   </AvatarContainer>
                 )}
               </div>

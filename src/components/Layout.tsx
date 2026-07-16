@@ -1,7 +1,7 @@
 import { Footer } from '@/components/Footer'
 import { Header } from '@/components/Header'
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export function Layout({ children, avatarUrl }: { children: React.ReactNode; avatarUrl?: string }) {
   return (
     <>
       <div className="fixed inset-0 flex justify-center sm:px-8">
@@ -10,7 +10,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <div className="relative flex w-full flex-col">
-        <Header />
+        <Header avatarUrl={avatarUrl} />
         <main className="flex-auto">{children}</main>
         <Footer />
       </div>

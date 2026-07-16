@@ -10,6 +10,7 @@ const sidebarLinks = [
   { href: '/admin/projects', label: 'Projects', icon: '▣' },
   { href: '/admin/experience', label: 'Experience', icon: '💼' },
   { href: '/admin/social', label: 'Social Links', icon: '🔗' },
+  { href: '/admin/tools', label: 'Tools', icon: '🛠' },
 ]
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {

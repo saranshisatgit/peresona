@@ -49,11 +49,13 @@ export default async function About() {
 
   const title = content.about_title || "I'm Saransh Sharma. I live in New York City, where I design the future."
   const email = content.about_email || 'saransh@planetaria.tech'
+  const portraitUrl = content.about_portrait
   let paragraphs: string[] = []
+  const raw = content.about_paragraphs || ''
   try {
-    paragraphs = JSON.parse(content.about_paragraphs || '[]')
+    paragraphs = JSON.parse(raw)
   } catch {
-    paragraphs = []
+    paragraphs = raw ? [raw] : []
   }
 
   return (
@@ -61,7 +63,7 @@ export default async function About() {
       <div className="grid grid-cols-1 gap-y-16 lg:grid-cols-2 lg:grid-rows-[auto_1fr] lg:gap-y-12">
         <div className="lg:pl-20">
           <div className="max-w-xs px-2.5 lg:max-w-none">
-            <Image src={portraitImage} alt="" sizes="(min-width: 1024px) 32rem, 20rem" className="aspect-square rotate-3 rounded-2xl bg-zinc-100 object-cover dark:bg-zinc-800" />
+            <Image src={portraitUrl || portraitImage} alt="" sizes="(min-width: 1024px) 32rem, 20rem" className="aspect-square rotate-3 rounded-2xl bg-zinc-100 object-cover dark:bg-zinc-800" unoptimized={!!portraitUrl} />
           </div>
         </div>
         <div className="lg:order-first lg:row-span-2">

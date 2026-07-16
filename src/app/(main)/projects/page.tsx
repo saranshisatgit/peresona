@@ -4,21 +4,9 @@ import Image, { type ImageProps } from 'next/image'
 import { Card } from '@/components/Card'
 import { SimpleLayout } from '@/components/SimpleLayout'
 import { getSiteContent, getProjects } from '@/lib/api'
+import { resolveLogo } from '@/lib/logos'
 
 export const dynamic = 'force-dynamic'
-import logoAnimaginary from '@/images/logos/animaginary.svg'
-import logoCosmos from '@/images/logos/cosmos.svg'
-import logoHelioStream from '@/images/logos/helio-stream.svg'
-import logoOpenShuttle from '@/images/logos/open-shuttle.svg'
-import logoPlanetaria from '@/images/logos/planetaria.svg'
-
-const logoMap: Record<string, ImageProps['src']> = {
-  planetaria: logoPlanetaria,
-  animaginary: logoAnimaginary,
-  'helio-stream': logoHelioStream,
-  cosmos: logoCosmos,
-  'open-shuttle': logoOpenShuttle,
-}
 
 function LinkIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
@@ -45,10 +33,12 @@ export default async function Projects() {
   return (
     <SimpleLayout title={title} intro={intro}>
       <ul role="list" className="grid grid-cols-1 gap-x-12 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
-        {projects.map((project) => (
+        {projects.map((project) => {
+          const { src: logoSrc, isUrl } = resolveLogo(project.logo)
+          return (
           <Card as="li" key={project.name}>
             <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-md ring-1 shadow-zinc-800/5 ring-zinc-900/5 dark:border dark:border-zinc-700/50 dark:bg-zinc-800 dark:ring-0">
-              <Image src={logoMap[project.logo] || logoPlanetaria} alt="" className="h-8 w-8" unoptimized />
+              <Image src={logoSrc} alt="" className="h-8 w-8" unoptimized={isUrl} />
             </div>
             <h2 className="mt-6 text-base font-semibold text-zinc-800 dark:text-zinc-100">
               <Card.Link href={project.url}>{project.name}</Card.Link>
@@ -59,7 +49,8 @@ export default async function Projects() {
               <span className="ml-2">{project.label}</span>
             </p>
           </Card>
-        ))}
+          )
+        })}
       </ul>
     </SimpleLayout>
   )

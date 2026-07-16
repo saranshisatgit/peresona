@@ -12,10 +12,6 @@ import {
   LinkedInIcon,
   XIcon,
 } from '@/components/SocialIcons'
-import logoAirbnb from '@/images/logos/airbnb.svg'
-import logoFacebook from '@/images/logos/facebook.svg'
-import logoPlanetaria from '@/images/logos/planetaria.svg'
-import logoStarbucks from '@/images/logos/starbucks.svg'
 import image1 from '@/images/photos/image-1.jpg'
 import image2 from '@/images/photos/image-2.jpg'
 import image3 from '@/images/photos/image-3.jpg'
@@ -23,16 +19,12 @@ import image4 from '@/images/photos/image-4.jpg'
 import image5 from '@/images/photos/image-5.jpg'
 import { type ArticleWithSlug, getAllArticles } from '@/lib/articles'
 import { getSiteContent, getExperience, getSocialLinks } from '@/lib/api'
+import { resolveLogo } from '@/lib/logos'
 import { formatDate } from '@/lib/formatDate'
 
 export const dynamic = 'force-dynamic'
 
-const logoMap: Record<string, ImageProps['src']> = {
-  planetaria: logoPlanetaria,
-  airbnb: logoAirbnb,
-  facebook: logoFacebook,
-  starbucks: logoStarbucks,
-}
+const fallbackPhotos = [image1, image2, image3, image4, image5]
 
 const socialIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   x: XIcon,
@@ -81,6 +73,7 @@ interface Role {
   company: string
   title: string
   logo: ImageProps['src']
+  logoUnoptimized?: boolean
   start: string | { label: string; dateTime: string }
   end: string | { label: string; dateTime: string }
 }
@@ -94,7 +87,7 @@ function Role({ role }: { role: Role }) {
   return (
     <li className="flex gap-4">
       <div className="relative mt-1 flex h-10 w-10 flex-none items-center justify-center rounded-full shadow-md ring-1 shadow-zinc-800/5 ring-zinc-900/5 dark:border dark:border-zinc-700/50 dark:bg-zinc-800 dark:ring-0">
-        <Image src={role.logo} alt="" className="h-7 w-7" unoptimized />
+        <Image src={role.logo} alt="" className="h-7 w-7" unoptimized={role.logoUnoptimized ?? true} />
       </div>
       <dl className="flex flex-auto flex-wrap gap-x-2">
         <dt className="sr-only">Company</dt>
@@ -126,15 +119,18 @@ function Resume({ items }: { items: Role[] }) {
   )
 }
 
-function Photos() {
+function Photos({ photoUrls }: { photoUrls?: string[] }) {
   let rotations = ['rotate-2', '-rotate-2', 'rotate-2', 'rotate-2', '-rotate-2']
+  const photos = photoUrls && photoUrls.length > 0
+    ? photoUrls.filter(Boolean).map((url) => ({ src: url, isUrl: true }))
+    : fallbackPhotos.map((img) => ({ src: img, isUrl: false }))
   return (
     <div className="mt-16 sm:mt-20">
       <div className="-my-4 flex justify-center gap-5 overflow-hidden py-4 sm:gap-8">
-        {[image1, image2, image3, image4, image5].map((image, imageIndex) => (
-          <div key={image.src} className={clsx('relative w-44 flex-none overflow-hidden rounded-xl bg-zinc-100 sm:w-72 sm:rounded-2xl dark:bg-zinc-800', rotations[imageIndex % rotations.length])}>
+        {photos.map((photo, imageIndex) => (
+          <div key={imageIndex} className={clsx('relative w-44 flex-none overflow-hidden rounded-xl bg-zinc-100 sm:w-72 sm:rounded-2xl dark:bg-zinc-800', rotations[imageIndex % rotations.length])}>
             <div className="aspect-9/10">
-              <Image src={image} alt="" sizes="(min-width: 640px) 18rem, 11rem" className="absolute inset-0 h-full w-full object-cover" />
+              <Image src={photo.src} alt="" sizes="(min-width: 640px) 18rem, 11rem" className="absolute inset-0 h-full w-full object-cover" unoptimized={photo.isUrl} />
             </div>
           </div>
         ))}
@@ -153,14 +149,18 @@ export default async function Home() {
 
   const heading = content.home_heading || 'Software designer, founder, and amateur astronaut.'
   const description = content.home_description || "I'm Saransh, a software designer and entrepreneur based in New York City. I'm the founder and CEO of Planetaria, where we develop technologies that empower regular people to explore space on their own terms."
+  const photoUrls = [content.home_photo_1, content.home_photo_2, content.home_photo_3, content.home_photo_4, content.home_photo_5].filter(Boolean)
 
-  const resumeItems: Role[] = experience.map((item) => ({
+  const resumeItems: Role[] = experience.map((item) => {
+    const { src, isUrl } = resolveLogo(item.logo)
+    return {
     company: item.company,
     title: item.title,
-    logo: logoMap[item.logo] || logoPlanetaria,
+    logo: src,
+    logoUnoptimized: isUrl,
     start: item.start,
     end: item.end === new Date().getFullYear().toString() ? { label: 'Present', dateTime: item.end } : item.end,
-  }))
+  }})
 
   return (
     <>
@@ -177,7 +177,7 @@ export default async function Home() {
           </div>
         </div>
       </Container>
-      <Photos />
+      <Photos photoUrls={photoUrls} />
       <Container className="mt-24 md:mt-28">
         <div className="mx-auto grid max-w-xl grid-cols-1 gap-y-20 lg:max-w-none lg:grid-cols-2">
           <div className="flex flex-col gap-16">{articles.map((article) => (<Article key={article.slug} article={article} />))}</div>

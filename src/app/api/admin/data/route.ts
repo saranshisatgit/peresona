@@ -24,6 +24,7 @@ const colMap: Record<string, string | undefined> = {
   projects: process.env.APPWRITE_PROJECTS_COLLECTION_ID,
   experience: process.env.APPWRITE_EXPERIENCE_COLLECTION_ID,
   social_links: process.env.APPWRITE_SOCIAL_LINKS_COLLECTION_ID,
+  tools: process.env.APPWRITE_TOOLS_COLLECTION_ID,
 }
 
 export async function GET(request: NextRequest) {
