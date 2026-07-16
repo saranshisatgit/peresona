@@ -16,7 +16,7 @@ export default function ContentEditor() {
 
   useEffect(() => {
     fetch('/api/admin/data?col=site_content')
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : { documents: [] })
       .then((data) => {
         setItems(data.documents || [])
       })

@@ -18,11 +18,10 @@ export function GenericTable({ title, col, items, fields, onRefresh }: Props) {
   async function save() {
     setMessage('')
     try {
-      if (editId === 'new') {
-        await fetch('/api/admin/data', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ col, data: form }) })
-      } else {
-        await fetch('/api/admin/data', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ col, id: editId, data: form }) })
-      }
+      const res = editId === 'new'
+        ? await fetch('/api/admin/data', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ col, data: form }) })
+        : await fetch('/api/admin/data', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ col, id: editId, data: form }) })
+      if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`)
       setEditId(null)
       setMessage('Saved!')
       onRefresh()
@@ -33,7 +32,12 @@ export function GenericTable({ title, col, items, fields, onRefresh }: Props) {
 
   async function remove(id: string) {
     if (!confirm(`Delete this ${title.slice(0, -1)}?`)) return
-    await fetch('/api/admin/data', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ col, id }) })
+    const res = await fetch('/api/admin/data', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ col, id }) })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setMessage(`Error: ${data.error || `HTTP ${res.status}`}`)
+      return
+    }
     onRefresh()
   }
 

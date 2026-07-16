@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Client, Databases, Query } from 'appwrite'
+import { Client, Databases, Query } from 'node-appwrite'
+import { checkApiAuth } from '@/lib/admin-auth'
 
 const client = new Client()
   .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!)
   .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!)
+  .setKey(process.env.APPWRITE_API_KEY!)
 
 const databases = new Databases(client)
 const DATABASE_ID = process.env.APPWRITE_DATABASE_ID!
+
+async function assertAuth(): Promise<void> {
+  const authed = await checkApiAuth()
+  if (!authed) {
+    throw new Error('Unauthorized')
+  }
+}
 
 const colMap: Record<string, string | undefined> = {
   site_content: process.env.APPWRITE_SITE_CONTENT_COLLECTION_ID,
@@ -19,6 +28,7 @@ const colMap: Record<string, string | undefined> = {
 
 export async function GET(request: NextRequest) {
   try {
+    await assertAuth()
     const col = request.nextUrl.searchParams.get('col')
     if (!col || !colMap[col]) return NextResponse.json({ error: 'Invalid collection' }, { status: 400 })
 
@@ -29,12 +39,14 @@ export async function GET(request: NextRequest) {
     )
     return NextResponse.json(response)
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    const status = err.message === 'Unauthorized' ? 401 : 500
+    return NextResponse.json({ error: err.message }, { status })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    await assertAuth()
     const { col, data } = await request.json()
     if (!col || !colMap[col]) return NextResponse.json({ error: 'Invalid collection' }, { status: 400 })
 
@@ -47,12 +59,14 @@ export async function POST(request: NextRequest) {
     )
     return NextResponse.json(result, { status: 201 })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    const status = err.message === 'Unauthorized' ? 401 : 500
+    return NextResponse.json({ error: err.message }, { status })
   }
 }
 
 export async function PATCH(request: NextRequest) {
   try {
+    await assertAuth()
     const { col, id, data } = await request.json()
     if (!col || !colMap[col] || !id) return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
 
@@ -65,18 +79,21 @@ export async function PATCH(request: NextRequest) {
     )
     return NextResponse.json(result)
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    const status = err.message === 'Unauthorized' ? 401 : 500
+    return NextResponse.json({ error: err.message }, { status })
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
+    await assertAuth()
     const { col, id } = await request.json()
     if (!col || !colMap[col] || !id) return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
 
     await databases.deleteDocument(DATABASE_ID, colMap[col]!, id)
     return NextResponse.json({ success: true })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    const status = err.message === 'Unauthorized' ? 401 : 500
+    return NextResponse.json({ error: err.message }, { status })
   }
 }

@@ -20,10 +20,10 @@ export default function SubscribersManager() {
 
   useEffect(() => {
     fetch('/api/admin/data?col=subscribers')
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : { documents: [] })
       .then((d) => setSubs(d.documents || []))
     fetch('/api/admin/data?col=articles')
-      .then((r) => r.json())
+      .then((r) => r.ok ? r.json() : { documents: [] })
       .then((d) => setArticles((d.documents || []).filter((a: any) => a.published)))
   }, [])
 

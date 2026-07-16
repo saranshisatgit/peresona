@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers'
-import { redirect } from 'next/navigation'
+import { NextResponse } from 'next/server'
 
 export async function POST() {
   const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID
@@ -20,5 +20,5 @@ export async function POST() {
   }
 
   cookieStore.delete(`a_session_${projectId}`)
-  redirect('/admin/login')
+  return NextResponse.redirect(new URL('/admin/login', process.env.NEXT_PUBLIC_URL || 'http://localhost:3000'), { status: 303 })
 }

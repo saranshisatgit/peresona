@@ -37,8 +37,8 @@ export default function ArticlesManager() {
 
   async function load() {
     const [ar, sr] = await Promise.all([
-      fetch('/api/admin/data?col=articles').then(r => r.json()),
-      fetch('/api/admin/data?col=subscribers').then(r => r.json()),
+      fetch('/api/admin/data?col=articles').then(r => r.ok ? r.json() : { documents: [] }),
+      fetch('/api/admin/data?col=subscribers').then(r => r.ok ? r.json() : { documents: [] }),
     ])
     setArticles((ar.documents || []).sort((a: Article, z: Article) => (a.date < z.date ? 1 : -1)))
     setSubs((sr.documents || []).filter((s: Subscriber) => s.status === 'active'))
@@ -85,11 +85,10 @@ export default function ArticlesManager() {
     setMessage('')
     setSending(true)
     try {
-      if (editId === 'new') {
-        await fetch('/api/admin/data', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ col: 'articles', data: form }) })
-      } else {
-        await fetch('/api/admin/data', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ col: 'articles', id: editId, data: form }) })
-      }
+      const res = editId === 'new'
+        ? await fetch('/api/admin/data', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ col: 'articles', data: form }) })
+        : await fetch('/api/admin/data', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ col: 'articles', id: editId, data: form }) })
+      if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`)
 
       if (notify && form.published) {
         const targets = selectedSubs.length > 0 ? selectedSubs : '__all__'
@@ -115,7 +114,12 @@ export default function ArticlesManager() {
 
   async function remove(id: string) {
     if (!confirm('Delete this article?')) return
-    await fetch('/api/admin/data', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ col: 'articles', id }) })
+    const res = await fetch('/api/admin/data', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ col: 'articles', id }) })
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setMessage(`Error: ${data.error || `HTTP ${res.status}`}`)
+      return
+    }
     load()
   }
 

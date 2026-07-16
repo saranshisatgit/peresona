@@ -1,31 +1,6 @@
-import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-
-async function checkAuth(): Promise<boolean> {
-  const cookieStore = await cookies()
-  const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID
-  if (!projectId) return false
-
-  const sessionCookie = cookieStore.get(`a_session_${projectId}`)
-  if (!sessionCookie) return false
-
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/account`,
-      {
-        headers: {
-          'X-Appwrite-Project': projectId,
-          'Content-Type': 'application/json',
-          Cookie: `a_session_${projectId}=${sessionCookie.value}`,
-        },
-      }
-    )
-    return res.ok
-  } catch {
-    return false
-  }
-}
+import { checkApiAuth } from '@/lib/admin-auth'
 
 const sidebarLinks = [
   { href: '/admin', label: 'Dashboard', icon: '◉' },
@@ -38,7 +13,7 @@ const sidebarLinks = [
 ]
 
 export default async function AdminDashboardLayout({ children }: { children: React.ReactNode }) {
-  const isAuth = await checkAuth()
+  const isAuth = await checkApiAuth()
 
   if (!isAuth) {
     redirect('/admin/login')

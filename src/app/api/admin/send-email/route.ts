@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { checkApiAuth } from '@/lib/admin-auth'
 
 const ENDPOINT = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT
 const PROJECT_ID = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID
@@ -24,6 +25,9 @@ async function appwrite(method: string, path: string, body?: any) {
 
 export async function POST(request: NextRequest) {
   try {
+    const authed = await checkApiAuth()
+    if (!authed) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
     const { subject, body, articleSlug, targets } = await request.json()
     if (!subject) return NextResponse.json({ error: 'Subject is required' }, { status: 400 })
 
