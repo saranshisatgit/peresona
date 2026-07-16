@@ -8,6 +8,8 @@ import { GitHubIcon, InstagramIcon, LinkedInIcon, XIcon } from '@/components/Soc
 import { getSiteContent, getSocialLinks } from '@/lib/api'
 import portraitImage from '@/images/portrait.jpg'
 
+export const dynamic = 'force-dynamic'
+
 function MailIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" {...props}>

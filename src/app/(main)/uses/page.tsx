@@ -3,6 +3,8 @@ import { Section } from '@/components/Section'
 import { SimpleLayout } from '@/components/SimpleLayout'
 import { getSiteContent, getTools } from '@/lib/api'
 
+export const dynamic = 'force-dynamic'
+
 function ToolsSection({ children, ...props }: React.ComponentPropsWithoutRef<typeof Section>) {
   return (<Section {...props}><ul role="list" className="space-y-16">{children}</ul></Section>)
 }

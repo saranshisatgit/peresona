@@ -6,6 +6,8 @@ import { type ArticleWithSlug, getAllArticles } from '@/lib/articles'
 import { getSiteContent } from '@/lib/api'
 import { formatDate } from '@/lib/formatDate'
 
+export const dynamic = 'force-dynamic'
+
 function Article({ article }: { article: ArticleWithSlug }) {
   return (
     <article className="md:grid md:grid-cols-4 md:items-baseline">

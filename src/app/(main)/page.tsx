@@ -25,6 +25,8 @@ import { type ArticleWithSlug, getAllArticles } from '@/lib/articles'
 import { getSiteContent, getExperience, getSocialLinks } from '@/lib/api'
 import { formatDate } from '@/lib/formatDate'
 
+export const dynamic = 'force-dynamic'
+
 const logoMap: Record<string, ImageProps['src']> = {
   planetaria: logoPlanetaria,
   airbnb: logoAirbnb,

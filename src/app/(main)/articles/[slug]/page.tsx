@@ -5,6 +5,8 @@ import { Prose } from '@/components/Prose'
 import { getArticle, getAllArticles } from '@/lib/articles'
 import { formatDate } from '@/lib/formatDate'
 
+export const dynamic = 'force-dynamic'
+
 export async function generateStaticParams() {
   let articles = await getAllArticles()
   return articles.map((article) => ({ slug: article.slug }))
