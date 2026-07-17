@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server'
 
+import {
+  signReaderToken,
+  READER_COOKIE,
+  readerCookieOptions,
+} from '@/lib/reader-session'
+
 const ENDPOINT = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT
 const PROJECT_ID = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID
 const API_KEY = process.env.APPWRITE_API_KEY
@@ -14,6 +20,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
     }
 
+    const normalizedEmail = String(email).trim().toLowerCase()
+
     const res = await fetch(`${ENDPOINT}/databases/${DATABASE_ID}/collections/${COLLECTION_ID}/documents`, {
       method: 'POST',
       headers: {
@@ -24,7 +32,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         documentId: 'unique()',
         data: {
-          email,
+          email: normalizedEmail,
           name: '',
           status: 'active',
           source: 'website',
@@ -33,15 +41,26 @@ export async function POST(request: Request) {
       }),
     })
 
+    let alreadySubscribed = false
     if (!res.ok) {
       const data = await res.json()
       if (data.message?.includes('already exists')) {
-        return NextResponse.json({ message: 'Already subscribed' }, { status: 200 })
+        alreadySubscribed = true
+      } else {
+        throw new Error(data.message)
       }
-      throw new Error(data.message)
     }
 
-    return NextResponse.json({ message: 'Subscribed successfully' }, { status: 201 })
+    const response = NextResponse.json(
+      { message: alreadySubscribed ? 'Already subscribed' : 'Subscribed successfully' },
+      { status: alreadySubscribed ? 200 : 201 },
+    )
+    response.cookies.set(
+      READER_COOKIE,
+      signReaderToken(normalizedEmail),
+      readerCookieOptions,
+    )
+    return response
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }

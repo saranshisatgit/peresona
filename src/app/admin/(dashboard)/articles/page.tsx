@@ -12,6 +12,7 @@ interface Article {
   published: boolean
   date: string
   author: string
+  access?: 'free' | 'subscribers'
 }
 
 interface Subscriber {
@@ -24,7 +25,7 @@ interface Subscriber {
 export default function ArticlesManager() {
   const [articles, setArticles] = useState<Article[]>([])
   const [editId, setEditId] = useState<string | null>(null)
-  const [form, setForm] = useState({ slug: '', title: '', description: '', content: '', author: '', date: '', published: true })
+  const [form, setForm] = useState({ slug: '', title: '', description: '', content: '', author: '', date: '', published: true, access: 'free' as 'free' | 'subscribers' })
   const [message, setMessage] = useState('')
   const [subs, setSubs] = useState<Subscriber[]>([])
   const [notify, setNotify] = useState(false)
@@ -48,14 +49,14 @@ export default function ArticlesManager() {
     setEditId('new')
     setNotify(false)
     setSelectedSubs([])
-    setForm({ slug: '', title: '', description: '', content: '<p></p>', author: '', date: new Date().toISOString().substring(0, 10), published: true })
+    setForm({ slug: '', title: '', description: '', content: '<p></p>', author: '', date: new Date().toISOString().substring(0, 10), published: true, access: 'free' })
   }
 
   function edit(a: Article) {
     setEditId(a.$id)
     setNotify(false)
     setSelectedSubs([])
-    setForm({ slug: a.slug, title: a.title, description: a.description, content: a.content || '<p></p>', author: a.author, date: a.date, published: a.published })
+    setForm({ slug: a.slug, title: a.title, description: a.description, content: a.content || '<p></p>', author: a.author, date: a.date, published: a.published, access: a.access === 'subscribers' ? 'subscribers' : 'free' })
   }
 
   function wrapTag(open: string, close: string) {
@@ -225,6 +226,16 @@ export default function ArticlesManager() {
                 Published
               </label>
 
+              <label className="flex items-center gap-2 text-sm text-zinc-300">
+                <input
+                  type="checkbox"
+                  checked={form.access === 'subscribers'}
+                  onChange={(e) => setForm(p => ({ ...p, access: e.target.checked ? 'subscribers' : 'free' }))}
+                  className="rounded border-zinc-600"
+                />
+                Subscriber-only
+              </label>
+
               {form.published && (
                 <label className="flex items-center gap-2 text-sm text-zinc-300">
                   <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)}
@@ -262,7 +273,7 @@ export default function ArticlesManager() {
           <div key={a.$id} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
             <div className="min-w-0 flex-1">
               <Link href={`/articles/${a.slug}`} className="text-sm font-medium text-zinc-100 hover:text-teal-400">{a.title}</Link>
-              <p className="truncate text-xs text-zinc-500">{a.date} {!a.published && <span className="text-yellow-500">(draft)</span>}</p>
+              <p className="truncate text-xs text-zinc-500">{a.date} {!a.published && <span className="text-yellow-500">(draft)</span>} {a.access === 'subscribers' && <span className="text-teal-500">(subscribers)</span>}</p>
             </div>
             <div className="flex gap-2">
               <button onClick={() => edit(a)} className="text-xs text-zinc-400 hover:text-zinc-200">Edit</button>

@@ -1,4 +1,5 @@
 import { getArticles, getArticleBySlug, type AppwriteArticle } from '@/lib/appwrite'
+import { type ArticleAccess } from '@/lib/reader-session'
 
 export interface Article {
   title: string
@@ -6,6 +7,7 @@ export interface Article {
   author: string
   date: string
   content?: string
+  access?: ArticleAccess
 }
 
 export interface ArticleWithSlug extends Article {
@@ -20,6 +22,7 @@ export async function getAllArticles(): Promise<ArticleWithSlug[]> {
     description: a.description,
     author: a.author,
     date: a.date,
+    access: a.access,
   }))
 }
 
@@ -33,5 +36,6 @@ export async function getArticle(slug: string): Promise<ArticleWithSlug | null> 
     author: article.author,
     date: article.date,
     content: article.content,
+    access: article.access,
   }
 }

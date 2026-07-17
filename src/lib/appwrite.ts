@@ -1,4 +1,5 @@
 import { Client, Databases, Query } from 'node-appwrite'
+import { type ArticleAccess } from '@/lib/reader-session'
 
 export interface AppwriteArticle {
   slug: string
@@ -8,6 +9,7 @@ export interface AppwriteArticle {
   author: string
   date: string
   published: boolean
+  access?: ArticleAccess
 }
 
 const client = new Client()
@@ -34,6 +36,7 @@ export async function getArticles(): Promise<AppwriteArticle[]> {
         author: doc.author,
         date: doc.date,
         published: doc.published,
+        access: doc.access,
       }))
       .filter((article: AppwriteArticle) => article.published)
       .sort((a: AppwriteArticle, z: AppwriteArticle) => +new Date(z.date) - +new Date(a.date))
@@ -59,6 +62,7 @@ export async function getArticleBySlug(slug: string): Promise<AppwriteArticle | 
       author: doc.author,
       date: doc.date,
       published: doc.published,
+      access: doc.access,
     }
   } catch {
     return null
