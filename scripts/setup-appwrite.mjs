@@ -179,6 +179,7 @@ collections.articles = await setupCollection('articles', [
   { type: 'string', key: 'author' },
   { type: 'string', key: 'date' },
   { type: 'boolean', key: 'published' },
+  { type: 'string', key: 'access', options: { size: 32, required: false, default: 'free' } },
 ], [
   { slug: 'crafting-a-design-system-for-a-multiplanetary-future', title: 'Crafting a design system for a multiplanetary future', description: 'Most companies try to stay ahead of the curve when it comes to visual design, but for Planetaria we needed to create a brand that would still inspire us 100 years from now when humanity has spread across our entire solar system.', content: '<p>Most companies try to stay ahead of the curve when it comes to visual design, but for Planetaria we needed to create a brand that would still inspire us 100 years from now when humanity has spread across our entire solar system.</p><p>I knew that to get it right I was going to have to replicate the viewing conditions of someone from the future, so I grabbed my space helmet from the closet, created a new Figma document, and got to work.</p><h2>Sermone fata</h2><p>Lorem markdownum, bracchia in redibam! Terque unda puppi nec, linguae posterior in utraque respicere candidus Mimasque formae; quae conantem cervice.</p>', author: 'Saransh Sharma', date: '2022-09-05', published: true },
   { slug: 'introducing-animaginary', title: 'Introducing Animaginary: High performance web animations', description: "When you're building a website for a company as ambitious as Planetaria, you need to make an impression. I wanted people to visit our website and see animations that looked more realistic than reality itself.", content: '<p>When you are building a website for a company as ambitious as Planetaria, you need to make an impression. I wanted people to visit our website and see animations that looked more realistic than reality itself.</p><p>I spent months researching the latest advances in web animation technology, and eventually created a library that could produce animations so smooth, they would make your audience feel like they were actually there.</p>', author: 'Saransh Sharma', date: '2022-09-02', published: true },
@@ -261,6 +262,36 @@ collections.subscribers = await setupCollection('subscribers', [
 
 
 // ------------------------------------------------------------------
+// Storage bucket
+// ------------------------------------------------------------------
+let bucketId
+try {
+  console.log('\n🪣 Storage bucket...')
+  const buckets = await api('GET', '/storage/buckets')
+  const existing = buckets.buckets?.find(b => b.name === 'media')
+  if (existing) {
+    bucketId = existing.$id
+    console.log(`  ✓ Bucket: media (${bucketId})`)
+  } else {
+    const bucket = await api('POST', '/storage/buckets', {
+      bucketId: 'unique()',
+      name: 'media',
+      permissions: ['read("any")'],
+      fileSecurity: false,
+      compression: 'none',
+      encryption: false,
+      antivirus: false,
+    })
+    bucketId = bucket.$id
+    console.log(`  ✓ Created bucket: media (${bucketId})`)
+  }
+} catch (err) {
+  console.log('  ~ Could not create bucket:', err.message)
+  console.log('  Create manually in Appwrite Console → Storage → Add Bucket (name: media)')
+}
+
+
+// ------------------------------------------------------------------
 // Create admin user
 // ------------------------------------------------------------------
 try {
@@ -302,6 +333,7 @@ const envUpdates = {
   APPWRITE_TOOLS_COLLECTION_ID: collections.tools,
   APPWRITE_SOCIAL_LINKS_COLLECTION_ID: collections.socialLinks,
   APPWRITE_SUBSCRIBERS_COLLECTION_ID: collections.subscribers,
+  APPWRITE_STORAGE_BUCKET_ID: bucketId,
 }
 
 console.log('\n📝 Updating .env.local...')
