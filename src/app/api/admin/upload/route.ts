@@ -32,7 +32,7 @@
      const created = await storage.createFile(
        BUCKET_ID,
        'unique()',
-       new File([buffer], file.name, { type: file.type }),
+       new File([new Uint8Array(buffer)], file.name, { type: file.type || 'application/octet-stream' }),
        ['read("any")'],
      )
 

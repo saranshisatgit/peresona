@@ -1,9 +1,25 @@
-'use client'
+ 'use client'
 
-import { useEffect, useState, useRef } from 'react'
-import { contentSchema, getFieldsByPage, pageLabels, pageOrder } from '@/lib/content-schema'
+ import { useEffect, useState, useRef } from 'react'
+ import { contentSchema, getFieldsByPage, pageLabels, pageOrder } from '@/lib/content-schema'
 
-interface ContentDoc {
+ const HEIC_EXT_RE = /\.(heic|heif)$/i
+ const HEIC_MIME_RE = /^image\/(heic|heif)$/i
+
+ function isHeic(file: File): boolean {
+   return HEIC_EXT_RE.test(file.name) || HEIC_MIME_RE.test(file.type)
+ }
+
+ async function maybeConvertHeic(file: File): Promise<File> {
+   if (!isHeic(file)) return file
+   const heic2any = (await import('heic2any')).default
+   const converted = (await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 })) as Blob | Blob[]
+   const blob = Array.isArray(converted) ? converted[0] : converted
+   const newName = file.name.replace(HEIC_EXT_RE, '.jpg')
+   return new File([blob], newName, { type: 'image/jpeg' })
+ }
+
+ interface ContentDoc {
   $id: string
   key: string
   value: string
@@ -63,13 +79,14 @@ export default function ContentEditor() {
     setSaving(null)
   }
 
-  async function uploadImage(key: string, file: File) {
-    setSaving(key)
-    setMessage('')
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const uploadRes = await fetch('/api/admin/upload', { method: 'POST', body: formData })
+   async function uploadImage(key: string, file: File) {
+     setSaving(key)
+     setMessage('')
+     try {
+       const uploadFile = await maybeConvertHeic(file)
+       const formData = new FormData()
+       formData.append('file', uploadFile)
+       const uploadRes = await fetch('/api/admin/upload', { method: 'POST', body: formData })
       const uploadData = await uploadRes.json()
       if (!uploadRes.ok) throw new Error(uploadData.error || 'Upload failed')
 
@@ -142,16 +159,16 @@ export default function ContentEditor() {
                             </div>
                           )}
                           <div className="flex flex-wrap gap-2">
-                            <input
-                              ref={(el) => { fileRefs.current[field.key] = el }}
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0]
-                                if (file) uploadImage(field.key, file)
-                              }}
-                              className="hidden"
-                            />
+                             <input
+                               ref={(el) => { fileRefs.current[field.key] = el }}
+                               type="file"
+                               accept="image/*,.heic,.heif"
+                               onChange={(e) => {
+                                 const file = e.target.files?.[0]
+                                 if (file) uploadImage(field.key, file)
+                               }}
+                               className="hidden"
+                             />
                             <button
                               onClick={() => fileRefs.current[field.key]?.click()}
                               disabled={saving === field.key}
