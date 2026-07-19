@@ -37,7 +37,7 @@
      )
 
      const fileId = created.$id
-     const viewUrl = `${ENDPOINT}/storage/files/${fileId}/view?project=${PROJECT_ID}&bucket=${BUCKET_ID}`
+     const viewUrl = `${ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${fileId}/view?project=${PROJECT_ID}`
 
      return NextResponse.json({ url: viewUrl, fileId })
    } catch (err: any) {
