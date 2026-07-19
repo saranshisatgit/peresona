@@ -29,6 +29,7 @@ export default function ArticlesManager() {
   const [message, setMessage] = useState('')
   const [subs, setSubs] = useState<Subscriber[]>([])
   const [notify, setNotify] = useState(false)
+  const [allSubs, setAllSubs] = useState(true)
   const [selectedSubs, setSelectedSubs] = useState<string[]>([])
   const [sending, setSending] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -48,6 +49,7 @@ export default function ArticlesManager() {
   function newArticle() {
     setEditId('new')
     setNotify(false)
+    setAllSubs(true)
     setSelectedSubs([])
     setForm({ slug: '', title: '', description: '', content: '<p></p>', author: '', date: new Date().toISOString().substring(0, 10), published: true, access: 'free' })
   }
@@ -55,6 +57,7 @@ export default function ArticlesManager() {
   function edit(a: Article) {
     setEditId(a.$id)
     setNotify(false)
+    setAllSubs(true)
     setSelectedSubs([])
     setForm({ slug: a.slug, title: a.title, description: a.description, content: a.content || '<p></p>', author: a.author, date: a.date, published: a.published, access: a.access === 'subscribers' ? 'subscribers' : 'free' })
   }
@@ -92,7 +95,7 @@ export default function ArticlesManager() {
       if (!res.ok) throw new Error((await res.json()).error || `HTTP ${res.status}`)
 
       if (notify && form.published) {
-        const targets = selectedSubs.length > 0 ? selectedSubs : '__all__'
+        const targets = allSubs ? '__all__' : selectedSubs
         await fetch('/api/admin/send-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -129,6 +132,7 @@ export default function ArticlesManager() {
   }
 
   function toggleSub(id: string) {
+    setAllSubs(false)
     setSelectedSubs(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id])
   }
 
@@ -199,7 +203,7 @@ export default function ArticlesManager() {
                   <button onClick={() => wrapTag('<ul>\n<li>', '</li>\n</ul>')} className="rounded px-2 py-1 text-xs bg-zinc-800 text-zinc-300 hover:bg-zinc-700">UL</button>
                   <button onClick={() => wrapTag('<ol>\n<li>', '</li>\n</ol>')} className="rounded px-2 py-1 text-xs bg-zinc-800 text-zinc-300 hover:bg-zinc-700">OL</button>
                   <button onClick={insertLink} className="rounded px-2 py-1 text-xs bg-zinc-800 text-zinc-300 hover:bg-zinc-700">🔗</button>
-                  <button onClick={() => wrapTag('<blockquote>', '</blockquote>')} className="rounded px-2 py-1 text-xs bg-zinc-800 text-zinc-300 hover:bg-zinc-700">"</button>
+                  <button onClick={() => wrapTag('<blockquote>', '</blockquote>')} className="rounded px-2 py-1 text-xs bg-zinc-800 text-zinc-300 hover:bg-zinc-700">&ldquo;</button>
                   <button onClick={() => wrapTag('<code>', '</code>')} className="rounded px-2 py-1 text-xs bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-mono">&lt;/&gt;</button>
                   <button onClick={() => wrapTag('<pre><code>', '</code></pre>')} className="rounded px-2 py-1 text-xs bg-zinc-800 text-zinc-300 hover:bg-zinc-700 font-mono">PRE</button>
                   <button onClick={() => setShowHtml(!showHtml)} className={`rounded px-2 py-1 text-xs ${showHtml ? 'bg-teal-700 text-white' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}>
@@ -248,15 +252,18 @@ export default function ArticlesManager() {
             {notify && form.published && (
               <div className="rounded border border-zinc-700 bg-zinc-800/50 p-3">
                 <label className="flex items-center gap-2 text-sm text-zinc-300 mb-2">
-                  <input type="checkbox" checked={selectedSubs.length === 0} onChange={() => setSelectedSubs([])}
+                  <input type="checkbox" checked={allSubs} onChange={(e) => { setAllSubs(e.target.checked); if (e.target.checked) setSelectedSubs([]) }}
                     className="rounded border-zinc-600" />
-                  All active subscribers
+                  All active subscribers ({subs.length})
                 </label>
+                <div className="mt-1 mb-1 pl-5 text-xs text-zinc-500">
+                  {allSubs ? 'Or uncheck "All" to pick subscribers one by one:' : `Selected ${selectedSubs.length} of ${subs.length}:`}
+                </div>
                 <div className="max-h-32 overflow-y-auto space-y-1 pl-5">
                   {subs.map(s => (
-                    <label key={s.$id} className={`flex items-center gap-2 text-xs cursor-pointer ${selectedSubs.length === 0 ? 'opacity-40 pointer-events-none' : 'text-zinc-400'}`}>
-                      <input type="checkbox" checked={selectedSubs.includes(s.$id)} onChange={() => toggleSub(s.$id)}
-                        disabled={selectedSubs.length === 0}
+                    <label key={s.$id} className={`flex items-center gap-2 text-xs cursor-pointer ${allSubs ? 'opacity-40' : 'text-zinc-400'}`}>
+                      <input type="checkbox" checked={!allSubs && selectedSubs.includes(s.$id)} onChange={() => toggleSub(s.$id)}
+                        disabled={allSubs}
                         className="rounded border-zinc-600" />
                       {s.email} <span className="text-zinc-600">{s.name || ''}</span>
                     </label>
