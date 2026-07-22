@@ -8,10 +8,10 @@ export const metadata: Metadata = {
   title: {
     template: '%s - Saransh Sharma',
     default:
-      'Saransh Sharma - Software designer, founder, and amateur astronaut',
+      'Saransh Sharma -  amateur',
   },
   description:
-    'I\'m Saransh, a software designer and entrepreneur based in New York City. I\'m the founder and CEO of Planetaria, where we develop technologies that empower regular people to explore space on their own terms.',
+    'I\'m Saransh, a  designer and entrepreneur based in here and there. I\'m the founder and CEO of JYT, where we develop technologies that empower regular people to explore space on their own terms.',
   alternates: {
     types: {
       'application/rss+xml': `${process.env.NEXT_PUBLIC_SITE_URL}/feed.xml`,
