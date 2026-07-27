@@ -1,15 +1,10 @@
 import crypto from 'crypto'
 import { cookies } from 'next/headers'
-
-const ENDPOINT = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT
-const PROJECT_ID = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID
-const API_KEY = process.env.APPWRITE_API_KEY
-const DATABASE_ID = process.env.APPWRITE_DATABASE_ID
-const SUBSCRIBERS_COLLECTION_ID = process.env.APPWRITE_SUBSCRIBERS_COLLECTION_ID
+import { sanityClient } from '@/sanity/lib/client'
 
 const SECRET =
   process.env.READER_COOKIE_SECRET ||
-  process.env.APPWRITE_API_KEY ||
+  process.env.SANITY_API_TOKEN ||
   'dev-only-fallback-secret-change-me'
 
 export const READER_COOKIE = 'ss_reader'
@@ -51,20 +46,14 @@ export function verifyReaderToken(
 }
 
 export async function isSubscriber(email: string): Promise<boolean> {
-  if (!SUBSCRIBERS_COLLECTION_ID || !email) return false
+  if (!email) return false
   const target = email.trim().toLowerCase()
   try {
-    const res = await fetch(
-      `${ENDPOINT}/databases/${DATABASE_ID}/collections/${SUBSCRIBERS_COLLECTION_ID}/documents`,
-      { headers: { 'X-Appwrite-Project': PROJECT_ID!, 'X-Appwrite-Key': API_KEY! } },
+    const doc = await sanityClient.fetch<any>(
+      `*[_type == "subscriber" && email == $email && status == "active"][0]`,
+      { email: target },
     )
-    if (!res.ok) return false
-    const data = await res.json()
-    return (data.documents || []).some(
-      (d: any) =>
-        String(d.email).trim().toLowerCase() === target &&
-        d.status === 'active',
-    )
+    return !!doc
   } catch {
     return false
   }

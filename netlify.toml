@@ -1,0 +1,16 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Redirect /admin to /studio since the admin panel is now Sanity Studio
+[[redirects]]
+  from = "/admin/*"
+  to = "/studio"
+  status = 302
+  force = false

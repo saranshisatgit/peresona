@@ -87,7 +87,7 @@ function Role({ role }: { role: Role }) {
   return (
     <li className="flex gap-4">
       <div className="relative mt-1 flex h-10 w-10 flex-none items-center justify-center rounded-full shadow-md ring-1 shadow-zinc-800/5 ring-zinc-900/5 dark:border dark:border-zinc-700/50 dark:bg-zinc-800 dark:ring-0">
-        <Image src={role.logo} alt="" className="h-7 w-7" unoptimized={role.logoUnoptimized ?? true} />
+        <Image src={role.logo} alt="" width={28} height={28} className="h-7 w-7" unoptimized={role.logoUnoptimized ?? true} />
       </div>
       <dl className="flex flex-auto flex-wrap gap-x-2">
         <dt className="sr-only">Company</dt>
@@ -130,7 +130,7 @@ function Photos({ photoUrls }: { photoUrls?: string[] }) {
         {photos.map((photo, imageIndex) => (
           <div key={imageIndex} className={clsx('relative w-44 flex-none overflow-hidden rounded-xl bg-zinc-100 sm:w-72 sm:rounded-2xl dark:bg-zinc-800', rotations[imageIndex % rotations.length])}>
             <div className="aspect-9/10">
-              <Image src={photo.src} alt="" sizes="(min-width: 640px) 18rem, 11rem" className="absolute inset-0 h-full w-full object-cover" unoptimized={photo.isUrl} />
+              <Image src={photo.src} alt="" width={288} height={320} sizes="(min-width: 640px) 18rem, 11rem" className="absolute inset-0 h-full w-full object-cover" unoptimized={photo.isUrl} />
             </div>
           </div>
         ))}
