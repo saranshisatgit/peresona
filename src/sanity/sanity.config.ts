@@ -18,6 +18,20 @@ export const config = defineConfig({
               .title('Author profile')
               .icon(() => '👤')
               .child(S.documentTypeList('profile')),
+            S.listItem()
+              .title('About page portrait')
+              .icon(() => '🖼️')
+              .child(
+                S.documentList()
+                  .title('About page portrait')
+                  .schemaType('siteContent')
+                  .filter('_type == "siteContent" && key == "about_portrait"')
+                  .initialValueTemplates([
+                    S.initialValueTemplateItem('siteContent', {
+                      key: 'about_portrait',
+                    }),
+                  ]),
+              ),
             S.divider(),
             S.documentTypeListItem('page').title('Pages'),
             S.documentTypeListItem('article').title('Articles'),

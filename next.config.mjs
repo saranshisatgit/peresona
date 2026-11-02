@@ -3,7 +3,6 @@ import nextMDX from '@next/mdx'
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'mdx'],
-  serverExternalPackages: ['@blocknote/server-util'],
   outputFileTracingIncludes: {
     '/articles/*': ['./src/app/articles/**/*.mdx'],
   },

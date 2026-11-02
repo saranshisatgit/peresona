@@ -1,14 +1,13 @@
 import { sanityClient } from '@/sanity/lib/client'
 import { urlFor } from '@/lib/api'
-import { parseBlocks } from '@/lib/parse-blocks'
-import type { Block } from '@blocknote/core'
 
 export interface SharedPage {
   slug: string
   title: string
   emoji: string
   coverUrl: string | null
-  blocks: Block[]
+  /** Raw BlockNote JSON string — parsed and rendered by PageContent (client). */
+  content: string | null
   updatedAt: string
 }
 
@@ -38,7 +37,7 @@ export async function getSharedPage(slug: string): Promise<SharedPage | null> {
       title: doc.title,
       emoji: doc.emoji || '',
       coverUrl: doc.cover ? urlFor(doc.cover, 1600) : null,
-      blocks: parseBlocks(doc.content),
+      content: doc.content || null,
       updatedAt: doc._updatedAt,
     }
   } catch {

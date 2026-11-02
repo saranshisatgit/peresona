@@ -1,34 +1,36 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useState } from 'react'
+import { useCreateBlockNote } from '@blocknote/react'
+import { BlockNoteView } from '@blocknote/mantine'
+import type { Block } from '@blocknote/core'
+
 import { useTheme } from '@/components/theme'
+import { parseBlocks } from '@/lib/parse-blocks'
+
+import '@blocknote/mantine/style.css'
 
 /**
- * Wraps server-rendered BlockNote HTML with the classes BlockNote's
- * stylesheet expects (.bn-root provides theme variables, .bn-editor scopes
- * table/code styles). The data-color-scheme attribute follows the site theme.
+ * Renders a shared page's Notion-style content with a read-only BlockNote
+ * editor. Rendered on the client so the server/Lambda never needs a DOM
+ * (jsdom) — BlockNoteView is the same UI used by the Studio editor, so the
+ * public page looks exactly like what you wrote.
  */
-export function PageContent({ html }: { html: string }) {
+export function PageContent({
+  content,
+}: {
+  content: string | null | undefined
+}) {
   let { resolvedTheme } = useTheme()
-  let ref = useRef<HTMLDivElement>(null)
+  const [initialBlocks] = useState<Block[]>(() => parseBlocks(content))
 
-  useEffect(() => {
-    ref.current?.setAttribute(
-      'data-color-scheme',
-      resolvedTheme === 'dark' ? 'dark' : 'light',
-    )
-  }, [resolvedTheme])
-
-  if (!html) {
-    return null
-  }
+  const editor = useCreateBlockNote({
+    initialContent: initialBlocks.length > 0 ? initialBlocks : undefined,
+  })
 
   return (
-    <div
-      ref={ref}
-      className="notion-page-content bn-container bn-root bn-default-styles bn-editor"
-      data-color-scheme="light"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className="notion-page-content">
+      <BlockNoteView editor={editor} editable={false} theme={resolvedTheme} />
+    </div>
   )
 }

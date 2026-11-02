@@ -4,12 +4,10 @@ import Link from 'next/link'
 import type { Metadata } from 'next'
 
 import { Container } from '@/components/Container'
-import { PageContent } from '@/components/PageContent'
+import { PageContentLoader } from '@/components/PageContentLoader'
 import { getSharedPage } from '@/lib/pages'
-import { blocksToNotionHtml } from '@/lib/notion'
 import { formatDateTime } from '@/lib/formatDate'
 
-import '@blocknote/core/style.css'
 import '@/styles/notion.css'
 
 export const dynamic = 'force-dynamic'
@@ -39,8 +37,6 @@ export default async function SharedPage({
   if (!page) {
     notFound()
   }
-
-  const html = await blocksToNotionHtml(page.blocks)
 
   return (
     <Container className="mt-16 lg:mt-32">
@@ -83,7 +79,7 @@ export default async function SharedPage({
           </div>
         </header>
 
-        <PageContent html={html} />
+        <PageContentLoader content={page.content} />
 
         <footer className="mt-16 border-t border-zinc-100 pt-8 text-sm text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
           This page was shared with you by Saransh. Only people with the link

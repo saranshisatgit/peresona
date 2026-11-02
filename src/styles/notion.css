@@ -1,12 +1,11 @@
 /*
  * Notion-style shared page content.
  *
- * The server-rendered BlockNote HTML is wrapped in
- * `.bn-container.bn-root.bn-default-styles.bn-editor` (see PageContent.tsx).
- * BlockNote's own stylesheet (@blocknote/core/style.css, imported on the page)
- * does most of the work — these rules just strip the editor chrome.
+ * The read-only BlockNoteView (see PageContent.tsx) renders its own
+ * `.bn-container .bn-root .bn-editor` wrapper. These rules just strip the
+ * editor chrome so the page reads like a document, not an editor.
  */
-.notion-page-content.bn-editor {
+.notion-page-content .bn-editor {
   padding-inline: 0;
   background-color: transparent;
   border-radius: 0;
