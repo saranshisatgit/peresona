@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useTheme } from 'next-themes'
+import { useTheme, type Theme } from '@/components/theme'
 import {
   Popover,
   PopoverButton,
@@ -180,7 +180,7 @@ function DesktopNavigation(props: React.ComponentPropsWithoutRef<'nav'>) {
 
 function ThemeToggle() {
   let { resolvedTheme, setTheme } = useTheme()
-  let otherTheme = resolvedTheme === 'dark' ? 'light' : 'dark'
+  let otherTheme: Theme = resolvedTheme === 'dark' ? 'light' : 'dark'
   let [mounted, setMounted] = useState(false)
 
   useEffect(() => {

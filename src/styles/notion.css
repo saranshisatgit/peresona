@@ -1,0 +1,25 @@
+/*
+ * Notion-style shared page content.
+ *
+ * The server-rendered BlockNote HTML is wrapped in
+ * `.bn-container.bn-root.bn-default-styles.bn-editor` (see PageContent.tsx).
+ * BlockNote's own stylesheet (@blocknote/core/style.css, imported on the page)
+ * does most of the work — these rules just strip the editor chrome.
+ */
+.notion-page-content.bn-editor {
+  padding-inline: 0;
+  background-color: transparent;
+  border-radius: 0;
+}
+
+/* Images uploaded into pages should not overflow their block */
+.notion-page-content .bn-block-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+/* Slightly roomier code blocks on the public page */
+.notion-page-content .bn-block-content[data-content-type='codeBlock'] > pre {
+  padding: 20px;
+}

@@ -27,6 +27,17 @@ export async function getSiteContent(): Promise<Record<string, string>> {
         map[doc.key] = doc.value || ''
       }
     }
+
+    // The author profile (edited in the studio under "Author profile") is the
+    // canonical source for the header/home avatar. Falls back to the legacy
+    // `global_avatar` siteContent key when no profile document exists yet.
+    const profileDoc = await sanityClient.fetch<any>(
+      `*[_type == "profile"][0] { photo }`,
+    )
+    if (profileDoc?.photo) {
+      map.global_avatar = urlFor(profileDoc.photo, 400)
+    }
+
     return map
   } catch {
     return {}
