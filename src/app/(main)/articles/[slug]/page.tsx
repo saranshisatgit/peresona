@@ -2,13 +2,21 @@ import { notFound } from 'next/navigation'
 
 import { Container } from '@/components/Container'
 import { Prose } from '@/components/Prose'
+import { BlockNoteHtml } from '@/components/BlockNoteHtml'
 import { PostSubscribeForm } from '@/components/PostSubscribeForm'
 import { SubscribeGate } from '@/components/SubscribeGate'
 import { getArticle, getAllArticles } from '@/lib/articles'
 import { formatDate } from '@/lib/formatDate'
 import { getVerifiedReaderEmail, isSubscriberOnly } from '@/lib/reader-session'
 
+import '@blocknote/core/style.css'
+import '@/styles/notion.css'
+
 export const dynamic = 'force-dynamic'
+
+function isBlockNoteContent(content: string | undefined): boolean {
+  return !!content && content.includes('bn-block-group')
+}
 
 export async function generateStaticParams() {
   let articles = await getAllArticles()
@@ -64,10 +72,16 @@ export default async function ArticlePage({
             </header>
 
             {canRead ? (
-              <Prose
-                className="mt-8"
-                dangerouslySetInnerHTML={{ __html: article.content || '' }}
-              />
+              isBlockNoteContent(article.content) ? (
+                <div className="mt-8">
+                  <BlockNoteHtml html={article.content || ''} />
+                </div>
+              ) : (
+                <Prose
+                  className="mt-8"
+                  dangerouslySetInnerHTML={{ __html: article.content || '' }}
+                />
+              )
             ) : (
               <div className="mt-8">
                 <Prose

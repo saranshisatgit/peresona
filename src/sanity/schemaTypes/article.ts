@@ -1,4 +1,5 @@
 import { defineType, defineField } from 'sanity'
+import { ArticleEditor } from '@/sanity/components/ArticleEditor'
 
 export const article = defineType({
   name: 'article',
@@ -26,10 +27,12 @@ export const article = defineType({
     }),
     defineField({
       name: 'content',
-      title: 'Content (HTML)',
+      title: 'Content',
       type: 'text',
       rows: 20,
-      description: 'Full HTML content of the article',
+      description:
+        'Modern block editor — type "/" for slash commands (headings, lists, quotes, code, images…), drag the ⋮⋮ handle to reorder blocks.',
+      components: { input: ArticleEditor },
     }),
     defineField({
       name: 'author',
