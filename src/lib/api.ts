@@ -19,12 +19,35 @@ export async function getSiteContent(): Promise<Record<string, string>> {
       }
     `)
 
+    // Only these keys are image-backed. For every other key the text value
+    // wins — so attaching an image to a text key (e.g. about_title) can
+    // never turn a heading into a bare image URL.
+    const IMAGE_KEYS = new Set([
+      'global_avatar',
+      'home_photo_1',
+      'home_photo_2',
+      'home_photo_3',
+      'home_photo_4',
+      'home_photo_5',
+      'about_portrait',
+    ])
+
     const map: Record<string, string> = {}
     for (const doc of docs) {
-      if (doc.image) {
+      if (IMAGE_KEYS.has(doc.key) && doc.image) {
         map[doc.key] = urlFor(doc.image, 1200)
       } else {
         map[doc.key] = doc.value || ''
+      }
+    }
+
+    // The about page portrait: prefer a dedicated `about_portrait` key; if it
+    // doesn't exist yet, reuse a photo attached to the `about_title` doc so
+    // the photo shows next to the content — never in the title.
+    if (!map.about_portrait) {
+      const aboutTitle = docs.find((d) => d.key === 'about_title' && d.image)
+      if (aboutTitle) {
+        map.about_portrait = urlFor(aboutTitle.image, 800)
       }
     }
 
