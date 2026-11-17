@@ -8,6 +8,7 @@ export interface Article {
   date: string
   content?: string
   access?: ArticleAccess
+  previewBlocks?: number
 }
 
 export interface ArticleWithSlug extends Article {
@@ -49,7 +50,8 @@ export async function getArticle(slug: string): Promise<ArticleWithSlug | null> 
         content,
         author,
         date,
-        access
+        access,
+        previewBlocks
       }`,
       { slug },
     )
@@ -62,6 +64,7 @@ export async function getArticle(slug: string): Promise<ArticleWithSlug | null> 
       date: doc.date,
       content: doc.content || '',
       access: (doc.access as ArticleAccess) || 'free',
+      previewBlocks: doc.previewBlocks ?? undefined,
     }
   } catch {
     return null

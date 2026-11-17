@@ -64,6 +64,16 @@ export const article = defineType({
       },
       initialValue: 'free',
     }),
+    defineField({
+      name: 'previewBlocks',
+      title: 'Preview blocks',
+      type: 'number',
+      description:
+        'How many of the first blocks non-subscribers see before the subscribe prompt.',
+      initialValue: 3,
+      validation: (rule) => rule.min(0).max(10).integer(),
+      hidden: ({ parent }) => parent?.access !== 'subscribers',
+    }),
   ],
   orderings: [
     {

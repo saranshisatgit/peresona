@@ -6,6 +6,7 @@ import { BlockNoteHtml } from '@/components/BlockNoteHtml'
 import { PostSubscribeForm } from '@/components/PostSubscribeForm'
 import { SubscribeGate } from '@/components/SubscribeGate'
 import { getArticle, getAllArticles } from '@/lib/articles'
+import { extractContentPreview } from '@/lib/content-preview'
 import { formatDate } from '@/lib/formatDate'
 import { getVerifiedReaderEmail, isSubscriberOnly } from '@/lib/reader-session'
 
@@ -52,6 +53,9 @@ export default async function ArticlePage({
   const gated = isSubscriberOnly(article.access)
   const readerEmail = gated ? await getVerifiedReaderEmail() : null
   const canRead = !gated || readerEmail !== null
+  const preview = gated
+    ? extractContentPreview(article.content, article.previewBlocks ?? 3)
+    : ''
 
   return (
     <Container className="mt-16 lg:mt-32">
@@ -84,11 +88,22 @@ export default async function ArticlePage({
               )
             ) : (
               <div className="mt-8">
-                <Prose
-                  dangerouslySetInnerHTML={{
-                    __html: `<p>${article.description || ''}</p>`,
-                  }}
-                />
+                {preview ? (
+                  <div className="relative max-h-100 overflow-hidden">
+                    {isBlockNoteContent(article.content) ? (
+                      <BlockNoteHtml html={preview} />
+                    ) : (
+                      <Prose dangerouslySetInnerHTML={{ __html: preview }} />
+                    )}
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-linear-to-t from-zinc-50 to-transparent dark:from-black" />
+                  </div>
+                ) : (
+                  <Prose
+                    dangerouslySetInnerHTML={{
+                      __html: `<p>${article.description || ''}</p>`,
+                    }}
+                  />
+                )}
                 <SubscribeGate />
               </div>
             )}
