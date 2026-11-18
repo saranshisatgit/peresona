@@ -20,18 +20,13 @@ export function SubscribeGate() {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, redirect: window.location.pathname }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         throw new Error(data.error || 'Something went wrong')
       }
-      setStatus({
-        type: 'success',
-        msg:
-          mode === 'subscribe' ? 'Subscribed! Unlocking…' : 'Verified! Unlocking…',
-      })
-      setTimeout(() => window.location.reload(), 700)
+      setStatus({ type: 'success', msg: data.message })
     } catch (err: any) {
       setStatus({ type: 'error', msg: err.message })
     }
@@ -43,29 +38,46 @@ export function SubscribeGate() {
         This post is for subscribers
       </h2>
       <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
-        Enter your email to read the full article. Your email is stored so you
-        stay signed in across posts.
+        Not subscribed yet? No problem — we&rsquo;ll quietly make you one.
+        Enter your email and we&rsquo;ll send a quick confirmation link to
+        your inbox to unlock this post.
       </p>
-      <form onSubmit={submit} className="mt-5 flex items-center">
-        <span className="flex min-w-0 flex-auto p-px">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email address"
-            aria-label="Email address"
-            required
-            className="w-full appearance-none rounded-[calc(var(--radius-md)-1px)] bg-white px-3 py-[calc(--spacing(2)-1px)] shadow-md shadow-zinc-800/5 outline outline-zinc-900/10 placeholder:text-zinc-400 focus:ring-4 focus:ring-teal-500/10 focus:outline-teal-500 sm:text-sm dark:bg-zinc-700/15 dark:text-zinc-200 dark:outline-zinc-700 dark:placeholder:text-zinc-500 dark:focus:ring-teal-400/10 dark:focus:outline-teal-400"
-          />
-        </span>
-        <Button type="submit" className="ml-4 flex-none">
-          {status.type === 'loading'
-            ? '…'
-            : mode === 'subscribe'
-              ? 'Subscribe & read'
-              : 'Sign in & read'}
-        </Button>
-      </form>
+      {status.type === 'success' ? (
+        <div className="mt-5 rounded-xl bg-teal-50 p-4 text-sm text-teal-800 dark:bg-teal-400/10 dark:text-teal-300">
+          <p className="font-medium">📬 {status.msg}</p>
+          <p className="mt-2 text-xs text-teal-700/80 dark:text-teal-400/80">
+            Wrong address or link expired? Just enter your email again.
+          </p>
+          <button
+            type="button"
+            onClick={() => setStatus({ type: 'idle' })}
+            className="mt-3 text-xs font-medium text-teal-600 hover:underline dark:text-teal-400"
+          >
+            Use a different email
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={submit} className="mt-5 flex items-center">
+          <span className="flex min-w-0 flex-auto p-px">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Email address"
+              aria-label="Email address"
+              required
+              className="w-full appearance-none rounded-[calc(var(--radius-md)-1px)] bg-white px-3 py-[calc(--spacing(2)-1px)] shadow-md shadow-zinc-800/5 outline outline-zinc-900/10 placeholder:text-zinc-400 focus:ring-4 focus:ring-teal-500/10 focus:outline-teal-500 sm:text-sm dark:bg-zinc-700/15 dark:text-zinc-200 dark:outline-zinc-700 dark:placeholder:text-zinc-500 dark:focus:ring-teal-400/10 dark:focus:outline-teal-400"
+            />
+          </span>
+          <Button type="submit" className="ml-4 flex-none">
+            {status.type === 'loading'
+              ? '…'
+              : mode === 'subscribe'
+                ? 'Subscribe & read'
+                : 'Sign in & read'}
+          </Button>
+        </form>
+      )}
       <div className="mt-3 flex items-center justify-between text-xs">
         <button
           type="button"
@@ -80,9 +92,6 @@ export function SubscribeGate() {
         </button>
         {status.type === 'error' && (
           <span className="text-red-500">{status.msg}</span>
-        )}
-        {status.type === 'success' && (
-          <span className="text-teal-500">{status.msg}</span>
         )}
       </div>
     </div>

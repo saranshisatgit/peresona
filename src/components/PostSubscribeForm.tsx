@@ -40,11 +40,15 @@ export function PostSubscribeForm() {
       const res = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: data.get('email') }),
+        body: JSON.stringify({
+          email: data.get('email'),
+          redirect: window.location.pathname,
+        }),
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(json.error || 'Something went wrong')
       setDone(true)
+      setError('')
     } catch (err: any) {
       setError(err.message)
     }
@@ -75,9 +79,15 @@ export function PostSubscribeForm() {
           />
         </span>
         <Button type="submit" className="ml-4 flex-none" disabled={done}>
-          {done ? 'Subscribed!' : 'Subscribe'}
+          {done ? 'Sent!' : 'Subscribe'}
         </Button>
       </div>
+      {done && (
+        <p className="mt-2 text-xs text-teal-500">
+          Not subscribed yet, but we&rsquo;re making you one — check your
+          inbox for a confirmation link.
+        </p>
+      )}
       {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
     </form>
   )

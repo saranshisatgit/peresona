@@ -17,13 +17,27 @@ export function NewsletterForm() {
       e.preventDefault()
       const form = e.currentTarget
       const data = new FormData(form)
-      await fetch('/api/subscribe', {
+      const res = await fetch('/api/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: data.get('email') }),
+        body: JSON.stringify({
+          email: data.get('email'),
+          redirect: window.location.pathname,
+        }),
       })
+      const json = await res.json().catch(() => ({}))
       const btn = form.querySelector('button')
-      if (btn) btn.textContent = 'Subscribed!'
+      if (btn) btn.textContent = res.ok ? 'Sent!' : 'Try again'
+      let note = form.querySelector<HTMLParagraphElement>('.newsletter-note')
+      if (!note) {
+        note = document.createElement('p')
+        note.className = 'newsletter-note mt-2 text-xs'
+        form.appendChild(note)
+      }
+      note.textContent = res.ok
+        ? 'Not subscribed yet, but we\u2019re making you one \u2014 check your inbox for a confirmation link.'
+        : json.error || 'Something went wrong. Please try again.'
+      note.style.color = res.ok ? '#14b8a6' : '#ef4444'
     }}>
       <h2 className="flex text-sm font-semibold text-zinc-900 dark:text-zinc-100">
         <MailIcon className="h-6 w-6 flex-none" />

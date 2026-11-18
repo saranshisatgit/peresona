@@ -1,50 +1,64 @@
 import { NextResponse } from 'next/server'
 
-import {
-  signReaderToken,
-  READER_COOKIE,
-  readerCookieOptions,
-} from '@/lib/reader-session'
-import { sanityWriteClient } from '@/sanity/lib/client'
+import { signMagicToken } from '@/lib/reader-session'
+import { sendVerificationEmail } from '@/lib/mailer'
+import { upsertSubscriber } from '@/lib/subscribers'
+
+function sanitizeRedirect(path: unknown): string {
+  if (typeof path !== 'string') return '/'
+  // Only allow same-site relative paths to avoid open redirects.
+  if (!path.startsWith('/') || path.startsWith('//')) return '/'
+  return path
+}
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json()
+    const body = await request.json().catch(() => ({}))
+    const email = body?.email
+    const redirect = sanitizeRedirect(body?.redirect)
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Invalid email address' },
+        { status: 400 },
+      )
     }
 
     const normalizedEmail = String(email).trim().toLowerCase()
 
-    const existing = await sanityWriteClient.fetch<any>(
-      `*[_type == "subscriber" && email == $email][0]`,
-      { email: normalizedEmail },
-    )
+    await upsertSubscriber(normalizedEmail)
 
-    if (!existing) {
-      await sanityWriteClient.create({
-        _type: 'subscriber',
-        email: normalizedEmail,
-        name: '',
-        status: 'active',
-        source: 'website',
-      })
-    } else if (existing.status !== 'active') {
-      await sanityWriteClient.patch(existing._id).set({ status: 'active' }).commit()
+    try {
+      await sendVerificationEmail(
+        normalizedEmail,
+        'subscribe',
+        signMagicToken(normalizedEmail),
+        redirect,
+      )
+    } catch (err) {
+      console.error('[subscribe] Failed to send verification email:', err)
+      return NextResponse.json(
+        {
+          error:
+            'We could not send your confirmation email right now. Please try again in a moment.',
+        },
+        { status: 503 },
+      )
     }
 
-    const response = NextResponse.json(
-      { message: existing ? 'Already subscribed' : 'Subscribed successfully' },
-      { status: existing ? 200 : 201 },
+    return NextResponse.json(
+      {
+        message:
+          "You're not subscribed yet, but we're making you one — we just sent a confirmation link to your inbox. One click and you're in.",
+        pending: true,
+      },
+      { status: 200 },
     )
-    response.cookies.set(
-      READER_COOKIE,
-      signReaderToken(normalizedEmail),
-      readerCookieOptions,
+  } catch (err) {
+    console.error('[subscribe] Unexpected error:', err)
+    return NextResponse.json(
+      { error: 'Something went wrong on our side. Please try again shortly.' },
+      { status: 500 },
     )
-    return response
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
