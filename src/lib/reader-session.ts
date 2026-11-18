@@ -29,15 +29,18 @@ export function signReaderToken(email: string): string {
 }
 
 /**
- * One-time magic link token: `${expiry}.${email}.${sig}`.
- * The link is emailed to the reader, and only clicking it grants
- * the reader cookie — so nobody can sign in as someone else's email.
+ * One-time magic link token: `${expiry}.${emailB64url}.${sig}`.
+ * The email is base64url-encoded (no dots in that alphabet) so dots
+ * in the email address can never break the parsing. The link is
+ * emailed to the reader, and only clicking it grants the reader
+ * cookie — so nobody can sign in as someone else's email.
  */
 export const MAGIC_TOKEN_TTL = 1000 * 60 * 30 // 30 minutes
 
 export function signMagicToken(email: string, ttlMs = MAGIC_TOKEN_TTL): string {
   const expiry = Date.now() + ttlMs
-  const payload = `${expiry}.${email}`
+  const emailB64 = Buffer.from(email, 'utf8').toString('base64url')
+  const payload = `${expiry}.${emailB64}`
   return `${payload}.${hmac(payload)}`
 }
 
@@ -49,10 +52,10 @@ export function verifyMagicToken(
   const secondDot = token.indexOf('.', firstDot + 1)
   if (firstDot < 1 || secondDot < 0) return null
   const expiry = Number(token.slice(0, firstDot))
-  const email = token.slice(firstDot + 1, secondDot)
+  const emailB64 = token.slice(firstDot + 1, secondDot)
   const sig = token.slice(secondDot + 1)
-  if (!expiry || !email || !sig || Date.now() > expiry) return null
-  const expected = hmac(`${expiry}.${email}`)
+  if (!expiry || !emailB64 || !sig || Date.now() > expiry) return null
+  const expected = hmac(`${expiry}.${emailB64}`)
   if (sig.length !== expected.length) return null
   try {
     if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
@@ -61,7 +64,11 @@ export function verifyMagicToken(
   } catch {
     return null
   }
-  return email.toLowerCase()
+  try {
+    return Buffer.from(emailB64, 'base64url').toString('utf8').toLowerCase()
+  } catch {
+    return null
+  }
 }
 
 export function verifyReaderToken(
