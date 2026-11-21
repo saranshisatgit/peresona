@@ -42,6 +42,7 @@ export function PostSubscribeForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: data.get('email'),
+          website: data.get('website'),
           redirect: window.location.pathname,
         }),
       })
@@ -89,6 +90,15 @@ export function PostSubscribeForm() {
         </p>
       )}
       {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
+      {/* Honeypot: hidden from humans, irresistible to bots. */}
+      <input
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="hidden"
+      />
     </form>
   )
 }

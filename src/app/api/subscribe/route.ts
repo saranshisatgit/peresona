@@ -3,6 +3,17 @@ import { NextResponse } from 'next/server'
 import { signMagicToken } from '@/lib/reader-session'
 import { sendVerificationEmail } from '@/lib/mailer'
 import { upsertSubscriber } from '@/lib/subscribers'
+import {
+  validateEmail,
+  isDisposableEmail,
+  getMailboxKey,
+  getRequestIp,
+  hashIp,
+  checkSendGuard,
+  getSessionSendCount,
+  buildSendLimitCookie,
+  SESSION_LIMIT,
+} from '@/lib/subscribe-guard'
 
 function sanitizeRedirect(path: unknown): string {
   if (typeof path !== 'string') return '/'
@@ -11,28 +22,64 @@ function sanitizeRedirect(path: unknown): string {
   return path
 }
 
+const PENDING_MESSAGE =
+  "You're not subscribed yet, but we're making you one — we just sent a confirmation link to your inbox. One click and you're in."
+
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}))
-    const email = body?.email
     const redirect = sanitizeRedirect(body?.redirect)
 
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    // Honeypot: the field is hidden from real users. Bots that fill it
+    // get a fake success so they never learn it worked.
+    if (typeof body?.website === 'string' && body.website.trim() !== '') {
+      return NextResponse.json({ message: PENDING_MESSAGE, pending: true })
+    }
+
+    const email = validateEmail(body?.email)
+    if (!email) {
       return NextResponse.json(
         { error: 'Invalid email address' },
         { status: 400 },
       )
     }
 
-    const normalizedEmail = String(email).trim().toLowerCase()
+    if (isDisposableEmail(email)) {
+      // Generic message: don't tell throwaway-mail users why.
+      return NextResponse.json(
+        { error: 'Invalid email address' },
+        { status: 400 },
+      )
+    }
 
-    await upsertSubscriber(normalizedEmail)
+    // One session (browser) can only request a few emails per hour.
+    const sessionCount = await getSessionSendCount()
+    if (sessionCount >= SESSION_LIMIT) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again later.' },
+        { status: 429 },
+      )
+    }
+
+    const ipHash = hashIp(getRequestIp(request))
+    const guard = await checkSendGuard(email, ipHash)
+    if (guard.action === 'reject') {
+      return NextResponse.json(
+        { error: guard.error },
+        { status: guard.status },
+      )
+    }
+    if (guard.action === 'silent') {
+      // Cooldown hit — a link is already in their inbox. Respond
+      // exactly like success so the caller learns nothing.
+      return NextResponse.json({ message: PENDING_MESSAGE, pending: true })
+    }
 
     try {
       await sendVerificationEmail(
-        normalizedEmail,
+        email,
         'subscribe',
-        signMagicToken(normalizedEmail),
+        signMagicToken(email),
         redirect,
       )
     } catch (err) {
@@ -46,14 +93,27 @@ export async function POST(request: Request) {
       )
     }
 
-    return NextResponse.json(
-      {
-        message:
-          "You're not subscribed yet, but we're making you one — we just sent a confirmation link to your inbox. One click and you're in.",
-        pending: true,
-      },
+    // The email went out — persist the subscriber and the send record
+    // (drives the cooldowns and global Resend budgets).
+    await upsertSubscriber(email, {
+      mailboxKey: getMailboxKey(email),
+      ipHash,
+      recordEmailSend: true,
+    })
+
+    const response = NextResponse.json(
+      { message: PENDING_MESSAGE, pending: true },
       { status: 200 },
     )
+    const sessionCookie = buildSendLimitCookie(sessionCount)
+    if (sessionCookie) {
+      response.cookies.set(
+        sessionCookie.name,
+        sessionCookie.value,
+        sessionCookie.options,
+      )
+    }
+    return response
   } catch (err) {
     console.error('[subscribe] Unexpected error:', err)
     return NextResponse.json(

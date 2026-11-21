@@ -22,6 +22,7 @@ export function NewsletterForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: data.get('email'),
+          website: data.get('website'),
           redirect: window.location.pathname,
         }),
       })
@@ -50,6 +51,15 @@ export function NewsletterForm() {
         </span>
         <Button type="submit" className="ml-4 flex-none">Join</Button>
       </div>
+      {/* Honeypot: hidden from humans, irresistible to bots. */}
+      <input
+        type="text"
+        name="website"
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="hidden"
+      />
     </form>
   )
 }
