@@ -1,6 +1,9 @@
 'use client'
 
+import { useState } from 'react'
+
 import { Button } from '@/components/Button'
+import { TurnstileWidget } from '@/components/TurnstileWidget'
 
 function MailIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
@@ -12,34 +15,41 @@ function MailIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
 }
 
 export function NewsletterForm() {
+  const [website, setWebsite] = useState('') // honeypot
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const turnstileEnabled = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const form = e.currentTarget
+    const data = new FormData(form)
+    const res = await fetch('/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: data.get('email'),
+        website,
+        turnstileToken,
+        redirect: window.location.pathname,
+      }),
+    })
+    const json = await res.json().catch(() => ({}))
+    const btn = form.querySelector('button')
+    if (btn) btn.textContent = res.ok ? 'Sent!' : 'Try again'
+    let note = form.querySelector<HTMLParagraphElement>('.newsletter-note')
+    if (!note) {
+      note = document.createElement('p')
+      note.className = 'newsletter-note mt-2 text-xs'
+      form.appendChild(note)
+    }
+    note.textContent = res.ok
+      ? 'Not subscribed yet, but we\u2019re making you one \u2014 check your inbox for a confirmation link.'
+      : json.error || 'Something went wrong. Please try again.'
+    note.style.color = res.ok ? '#14b8a6' : '#ef4444'
+  }
+
   return (
-    <form action="/api/subscribe" method="POST" className="rounded-2xl border border-zinc-100 p-6 dark:border-zinc-700/40" onSubmit={async (e) => {
-      e.preventDefault()
-      const form = e.currentTarget
-      const data = new FormData(form)
-      const res = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: data.get('email'),
-          website: data.get('website'),
-          redirect: window.location.pathname,
-        }),
-      })
-      const json = await res.json().catch(() => ({}))
-      const btn = form.querySelector('button')
-      if (btn) btn.textContent = res.ok ? 'Sent!' : 'Try again'
-      let note = form.querySelector<HTMLParagraphElement>('.newsletter-note')
-      if (!note) {
-        note = document.createElement('p')
-        note.className = 'newsletter-note mt-2 text-xs'
-        form.appendChild(note)
-      }
-      note.textContent = res.ok
-        ? 'Not subscribed yet, but we\u2019re making you one \u2014 check your inbox for a confirmation link.'
-        : json.error || 'Something went wrong. Please try again.'
-      note.style.color = res.ok ? '#14b8a6' : '#ef4444'
-    }}>
+    <form action="/api/subscribe" method="POST" onSubmit={onSubmit} className="rounded-2xl border border-zinc-100 p-6 dark:border-zinc-700/40">
       <h2 className="flex text-sm font-semibold text-zinc-900 dark:text-zinc-100">
         <MailIcon className="h-6 w-6 flex-none" />
         <span className="ml-3">Stay up to date</span>
@@ -47,9 +57,9 @@ export function NewsletterForm() {
       <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">Get notified when I publish something new, and unsubscribe at any time.</p>
       <div className="mt-6 flex items-center">
         <span className="flex min-w-0 flex-auto p-px">
-          <input type="email" name="email" placeholder="Email address" aria-label="Email address" required className="w-full appearance-none rounded-[calc(var(--radius-md)-1px)] bg-white px-3 py-[calc(--spacing(2)-1px)] shadow-md shadow-zinc-800/5 outline outline-zinc-900/10 placeholder:text-zinc-400 focus:ring-4 focus:ring-teal-500/10 focus:outline-teal-500 sm:text-sm dark:bg-zinc-700/15 dark:text-zinc-200 dark:outline-zinc-700 dark:placeholder:text-zinc-500 dark:focus:ring-teal-400/10 dark:focus:outline-teal-400" />
+          <input type="email" name="email" placeholder="Email address" aria-label="Email address" required className="w-full appearance-none rounded-[calc(var(--radius-md)-1px)] bg-white px-3 py-[calc(var(--spacing(2)-1px)] shadow-md shadow-zinc-800/5 outline outline-zinc-900/10 placeholder:text-zinc-400 focus:ring-4 focus:ring-teal-500/10 focus:outline-teal-500 sm:text-sm dark:bg-zinc-700/15 dark:text-zinc-200 dark:outline-zinc-700 dark:placeholder:text-zinc-500 dark:focus:ring-teal-400/10 dark:focus:outline-teal-400" />
         </span>
-        <Button type="submit" className="ml-4 flex-none">Join</Button>
+        <Button type="submit" className="ml-4 flex-none" disabled={turnstileEnabled && !turnstileToken}>Join</Button>
       </div>
       {/* Honeypot: hidden from humans, irresistible to bots. */}
       <input
@@ -59,7 +69,10 @@ export function NewsletterForm() {
         autoComplete="off"
         aria-hidden="true"
         className="hidden"
+        value={website}
+        onChange={(e) => setWebsite(e.target.value)}
       />
+      <TurnstileWidget onToken={setTurnstileToken} />
     </form>
   )
 }

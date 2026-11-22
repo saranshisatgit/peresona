@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { signMagicToken } from '@/lib/reader-session'
 import { sendVerificationEmail } from '@/lib/mailer'
 import { upsertSubscriber } from '@/lib/subscribers'
+import { verifyTurnstileToken } from '@/lib/turnstile'
 import {
   validateEmail,
   isDisposableEmail,
@@ -34,6 +35,18 @@ export async function POST(request: Request) {
     // get a fake success so they never learn it worked.
     if (typeof body?.website === 'string' && body.website.trim() !== '') {
       return NextResponse.json({ message: PENDING_MESSAGE, pending: true })
+    }
+
+    // Cloudflare Turnstile: humans only past this point.
+    const human = await verifyTurnstileToken(
+      body?.turnstileToken,
+      getRequestIp(request),
+    )
+    if (!human) {
+      return NextResponse.json(
+        { error: 'Human verification failed. Please refresh and try again.' },
+        { status: 400 },
+      )
     }
 
     const email = validateEmail(body?.email)

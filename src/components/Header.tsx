@@ -238,6 +238,11 @@ function Avatar({
       <Image
         src={src || avatarImage}
         alt=""
+        // Remote URLs (unlike the static import) have no intrinsic
+        // dimensions, which next/image requires. Display size is
+        // controlled by the h/w classes below.
+        width={64}
+        height={64}
         sizes={large ? '4rem' : '2.25rem'}
         className={clsx(
           'rounded-full bg-zinc-100 object-cover dark:bg-zinc-800',

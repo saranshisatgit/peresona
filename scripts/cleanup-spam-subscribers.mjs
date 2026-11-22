@@ -60,7 +60,7 @@ function getMailboxKey(email) {
 
 async function main() {
   const subscribers = await client.fetch(
-    `*[_type == "subscriber"]{ _id, email, status, source, mailboxKey, _createdAt }`,
+    `*[_type == "subscriber"]{ _id, email, emailMasked, status, source, mailboxKey, mailboxKeyHash, _createdAt }`,
   )
   console.log(`Total subscribers: ${subscribers.length}`)
 
@@ -75,17 +75,21 @@ async function main() {
     `\nWebsite signups since ${SINCE} to block: ${flood.length}`,
   )
   for (const s of flood) {
-    console.log(`  [block]   ${s.email}  (${s._createdAt})`)
+    console.log(`  [block]   ${s.emailMasked || s.email || '(sealed)'}  (${s._createdAt})`)
   }
 
-  // 2. Backfill mailboxKey everywhere it is missing.
-  const missingKey = subscribers.filter((s) => !s.mailboxKey && s.email)
-  console.log(`\nSubscribers missing mailboxKey: ${missingKey.length}`)
+  // 2. Backfill mailboxKey on legacy docs that still lack it.
+  //    (New sealed docs carry mailboxKeyHash instead.)
+  const missingKey = subscribers.filter(
+    (s) => !s.mailboxKey && !s.mailboxKeyHash && s.email,
+  )
+  console.log(`\nLegacy subscribers missing mailbox keys: ${missingKey.length}`)
 
   // Sanity check: show which existing docs collide on one mailbox —
-  // those are guaranteed dot-variant abuse.
+  // those are guaranteed dot-variant abuse. (Legacy docs only — sealed
+  // docs are keyed by mailboxKeyHash and can't be compared here.)
   const keys = new Map()
-  for (const s of subscribers) {
+  for (const s of subscribers.filter((s) => s.email)) {
     const key = getMailboxKey(s.email)
     if (!keys.has(key)) keys.set(key, [])
     keys.get(key).push(s.email)

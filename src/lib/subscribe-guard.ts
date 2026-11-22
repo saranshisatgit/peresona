@@ -2,6 +2,7 @@ import crypto from 'crypto'
 import { cookies } from 'next/headers'
 
 import { sanityWriteClient } from '@/sanity/lib/client'
+import { getEmailHash, getMailboxKeyHash } from '@/lib/subscriber-crypto'
 
 /**
  * Anti-abuse guard for the two endpoints that send email
@@ -239,10 +240,12 @@ export async function checkSendGuard(
   ipHash: string,
 ): Promise<SendGuardDecision> {
   const mailboxKey = getMailboxKey(email)
+  const emailHash = getEmailHash(email)
+  const mailboxKeyHash = getMailboxKeyHash(mailboxKey)
   const now = Date.now()
   const params = {
-    email,
-    mailboxKey,
+    emailHash,
+    mailboxKeyHash,
     ipHash,
     hourAgo: new Date(now - 60 * 60 * 1000).toISOString(),
     dayAgo: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
@@ -253,10 +256,12 @@ export async function checkSendGuard(
     data = await sanityWriteClient.fetch(
       `{
         "matches": *[_type == "subscriber"
-          && (email == $email || mailboxKey == $mailboxKey)
-        ]{ email, status, lastEmailSentAt },
+          && (emailHash == $emailHash || mailboxKeyHash == $mailboxKeyHash)
+        ]{ status, lastEmailSentAt },
+        "mailboxVariants": count(*[_type == "subscriber"
+          && mailboxKeyHash == $mailboxKeyHash]),
         "mailboxDay": count(*[_type == "subscriber"
-          && mailboxKey == $mailboxKey
+          && mailboxKeyHash == $mailboxKeyHash
           && defined(lastEmailSentAt) && lastEmailSentAt > $dayAgo]),
         "ipDay": count(*[_type == "subscriber"
           && signupIpHash == $ipHash && _createdAt > $dayAgo]),
@@ -285,8 +290,7 @@ export async function checkSendGuard(
   }
 
   // One inbox masquerading as many addresses (Gmail dot trick, +tags).
-  const variants = new Set(matches.map((m) => m.email))
-  if (variants.size >= MAILBOX_VARIANT_LIMIT) {
+  if ((data?.mailboxVariants || 0) >= MAILBOX_VARIANT_LIMIT) {
     return { action: 'reject', status: 429, error: GENERIC_BOUNCE }
   }
 

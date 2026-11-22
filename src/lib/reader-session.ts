@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import { cookies } from 'next/headers'
-import { sanityClient } from '@/sanity/lib/client'
+import { sanityWriteClient } from '@/sanity/lib/client'
+import { getEmailHash } from '@/lib/subscriber-crypto'
 
 const SECRET = process.env.READER_COOKIE_SECRET || process.env.SANITY_API_TOKEN || ''
 
@@ -26,6 +27,42 @@ export function isSubscriberOnly(access: string | undefined | null): boolean {
 
 export function signReaderToken(email: string): string {
   return `${email}.${hmac(email)}`
+}
+
+/**
+ * Unsubscribe link token: `${emailB64url}.${sig}` with its own HMAC
+ * domain so it can never be repurposed as a reader (sign-in) cookie —
+ * those are worth more, and unsubscribe links end up in mail archives.
+ * Deliberately non-expiring: unsubscribe links must keep working for
+ * years-old newsletters.
+ */
+export function signUnsubscribeToken(email: string): string {
+  const emailB64 = Buffer.from(email, 'utf-8').toString('base64url')
+  return `${emailB64}.${hmac(`unsubscribe:${emailB64}`)}`
+}
+
+export function verifyUnsubscribeToken(
+  token: string | undefined | null,
+): string | null {
+  if (!token) return null
+  const dot = token.indexOf('.')
+  if (dot < 1) return null
+  const emailB64 = token.slice(0, dot)
+  const sig = token.slice(dot + 1)
+  const expected = hmac(`unsubscribe:${emailB64}`)
+  if (sig.length !== expected.length) return null
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
+      return null
+    }
+  } catch {
+    return null
+  }
+  try {
+    return Buffer.from(emailB64, 'base64url').toString('utf-8').toLowerCase()
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -96,9 +133,9 @@ export async function isSubscriber(email: string): Promise<boolean> {
   if (!email) return false
   const target = email.trim().toLowerCase()
   try {
-    const doc = await sanityClient.fetch<any>(
-      `*[_type == "subscriber" && email == $email && status == "active"][0]`,
-      { email: target },
+    const doc = await sanityWriteClient.fetch<any>(
+      `*[_type == "subscriber" && emailHash == $emailHash && status == "active"][0]`,
+      { emailHash: getEmailHash(target) },
     )
     return !!doc
   } catch {
@@ -116,9 +153,9 @@ export async function getVerifiedReaderEmail(): Promise<string | null> {
   const email = await getReaderEmail()
   if (!email) return null
   try {
-    const doc = await sanityClient.fetch<any>(
-      `*[_type == "subscriber" && email == $email][0]{ status }`,
-      { email },
+    const doc = await sanityWriteClient.fetch<any>(
+      `*[_type == "subscriber" && emailHash == $emailHash][0]{ status }`,
+      { emailHash: getEmailHash(email) },
     )
     // Explicitly unsubscribed readers lose access.
     if (doc) return doc.status === 'active' ? email : null

@@ -1,5 +1,13 @@
 import { sanityWriteClient } from '@/sanity/lib/client'
 
+import {
+  getEmailHash,
+  getMailboxKeyHash,
+  encryptEmail,
+  decryptEmail,
+  maskEmail,
+} from '@/lib/subscriber-crypto'
+
 export interface UpsertOptions {
   /** Canonical inbox identity (see subscribe-guard). */
   mailboxKey?: string
@@ -14,29 +22,35 @@ export interface UpsertOptions {
 }
 
 /**
- * Best-effort subscriber upsert. Returns active: false only when the
- * subscriber is explicitly blocked. Write failures are logged but never
- * thrown — a verified reader should still be able to read (see
- * getVerifiedReaderEmail).
+ * Best-effort subscriber upsert, keyed by the HMAC of the email (see
+ * subscriber-crypto — addresses are never stored in plaintext).
+ * Returns active: false only when the subscriber is explicitly blocked.
+ * Write failures are logged but never thrown — a verified reader
+ * should still be able to read (see getVerifiedReaderEmail).
  */
 export async function upsertSubscriber(
   email: string,
   opts: UpsertOptions = {},
 ): Promise<{ active: boolean; writeFailed: boolean; id: string | null }> {
+  const emailHash = getEmailHash(email)
   try {
     const existing = await sanityWriteClient.fetch<any>(
-      `*[_type == "subscriber" && email == $email][0]`,
-      { email },
+      `*[_type == "subscriber" && emailHash == $emailHash][0]`,
+      { emailHash },
     )
 
     if (!existing) {
       const created = await sanityWriteClient.create({
         _type: 'subscriber',
-        email,
+        emailHash,
+        emailEnc: encryptEmail(email),
+        emailMasked: maskEmail(email),
         name: '',
         status: 'active',
         source: 'website',
-        ...(opts.mailboxKey ? { mailboxKey: opts.mailboxKey } : {}),
+        ...(opts.mailboxKey
+          ? { mailboxKeyHash: getMailboxKeyHash(opts.mailboxKey) }
+          : {}),
         ...(opts.ipHash ? { signupIpHash: opts.ipHash } : {}),
         ...(opts.recordEmailSend
           ? {
@@ -55,8 +69,8 @@ export async function upsertSubscriber(
 
     const patch: Record<string, unknown> = {}
     if (existing.status !== 'active') patch.status = 'active'
-    if (opts.mailboxKey && !existing.mailboxKey) {
-      patch.mailboxKey = opts.mailboxKey
+    if (opts.mailboxKey && !existing.mailboxKeyHash) {
+      patch.mailboxKeyHash = getMailboxKeyHash(opts.mailboxKey)
     }
     if (opts.ipHash && !existing.signupIpHash) {
       patch.signupIpHash = opts.ipHash
@@ -76,5 +90,24 @@ export async function upsertSubscriber(
   } catch (err) {
     console.warn('[subscribe] Could not write subscriber to Sanity:', err)
     return { active: true, writeFailed: true, id: null }
+  }
+}
+
+/**
+ * Decrypt the stored address of a subscriber document (for admin
+ * scripts and exports). Requires the same READER_COOKIE_SECRET that
+ * sealed it.
+ */
+export async function getSubscriberEmail(
+  id: string,
+): Promise<string | null> {
+  try {
+    const doc = await sanityWriteClient.fetch<any>(
+      `*[_type == "subscriber" && _id == $id][0]{ emailEnc }`,
+      { id },
+    )
+    return doc?.emailEnc ? decryptEmail(doc.emailEnc) : null
+  } catch {
+    return null
   }
 }

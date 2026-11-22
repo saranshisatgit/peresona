@@ -6,10 +6,27 @@ export const subscriber = defineType({
   type: 'document',
   fields: [
     defineField({
-      name: 'email',
-      title: 'Email',
+      name: 'emailHash',
+      title: 'Email hash',
       type: 'string',
-      validation: (rule) => rule.required().email(),
+      description:
+        'HMAC of the email — the only lookup key. The address itself is in emailEnc (sealed) and shown masked below.',
+      readOnly: true,
+    }),
+    defineField({
+      name: 'emailEnc',
+      title: 'Email (encrypted)',
+      type: 'text',
+      description:
+        'AES-256-GCM sealed address. Only the site server can open it.',
+      readOnly: true,
+    }),
+    defineField({
+      name: 'emailMasked',
+      title: 'Email (masked)',
+      type: 'string',
+      description: 'Safe display form, e.g. uf•••••@gmail.com',
+      readOnly: true,
     }),
     defineField({ name: 'name', title: 'Name', type: 'string' }),
     defineField({
@@ -32,11 +49,11 @@ export const subscriber = defineType({
       initialValue: 'website',
     }),
     defineField({
-      name: 'mailboxKey',
-      title: 'Mailbox key',
+      name: 'mailboxKeyHash',
+      title: 'Mailbox key hash',
       type: 'string',
       description:
-        'Canonical inbox identity (Gmail dots/+tags stripped). Used for anti-abuse rate limiting.',
+        'HMAC of the canonical inbox identity (Gmail dots/+tags stripped) — used for anti-abuse rate limiting.',
       readOnly: true,
     }),
     defineField({
@@ -64,7 +81,7 @@ export const subscriber = defineType({
   ],
   preview: {
     select: {
-      title: 'email',
+      title: 'emailMasked',
       subtitle: 'status',
     },
   },

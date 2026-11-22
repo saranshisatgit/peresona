@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import { Button } from '@/components/Button'
+import { TurnstileWidget } from '@/components/TurnstileWidget'
 
 type Status = { type: 'idle' | 'loading' | 'error' | 'success'; msg?: string }
 
@@ -10,6 +11,14 @@ export function SubscribeGate() {
   const [email, setEmail] = useState('')
   const [mode, setMode] = useState<'subscribe' | 'verify'>('subscribe')
   const [status, setStatus] = useState<Status>({ type: 'idle' })
+  const [website, setWebsite] = useState('') // honeypot
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const turnstileEnabled = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
+  const handleTurnstileToken = useCallback(
+    (token: string | null) => setTurnstileToken(token),
+    [],
+  )
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -20,7 +29,12 @@ export function SubscribeGate() {
       const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, redirect: window.location.pathname }),
+        body: JSON.stringify({
+          email,
+          website,
+          turnstileToken,
+          redirect: window.location.pathname,
+        }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
@@ -57,25 +71,43 @@ export function SubscribeGate() {
           </button>
         </div>
       ) : (
-        <form onSubmit={submit} className="mt-5 flex items-center">
-          <span className="flex min-w-0 flex-auto p-px">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email address"
-              aria-label="Email address"
-              required
-              className="w-full appearance-none rounded-[calc(var(--radius-md)-1px)] bg-white px-3 py-[calc(--spacing(2)-1px)] shadow-md shadow-zinc-800/5 outline outline-zinc-900/10 placeholder:text-zinc-400 focus:ring-4 focus:ring-teal-500/10 focus:outline-teal-500 sm:text-sm dark:bg-zinc-700/15 dark:text-zinc-200 dark:outline-zinc-700 dark:placeholder:text-zinc-500 dark:focus:ring-teal-400/10 dark:focus:outline-teal-400"
-            />
-          </span>
-          <Button type="submit" className="ml-4 flex-none">
-            {status.type === 'loading'
-              ? '…'
-              : mode === 'subscribe'
-                ? 'Subscribe & read'
-                : 'Sign in & read'}
-          </Button>
+        <form onSubmit={submit} className="mt-5">
+          <div className="flex items-center">
+            <span className="flex min-w-0 flex-auto p-px">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email address"
+                aria-label="Email address"
+                required
+                className="w-full appearance-none rounded-[calc(var(--radius-md)-1px)] bg-white px-3 py-[calc(--spacing(2)-1px)] shadow-md shadow-zinc-800/5 outline outline-zinc-900/10 placeholder:text-zinc-400 focus:ring-4 focus:ring-teal-500/10 focus:outline-teal-500 sm:text-sm dark:bg-zinc-700/15 dark:text-zinc-200 dark:outline-zinc-700 dark:placeholder:text-zinc-500 dark:focus:ring-teal-400/10 dark:focus:outline-teal-400"
+              />
+            </span>
+            <Button
+              type="submit"
+              className="ml-4 flex-none"
+              disabled={turnstileEnabled && !turnstileToken}
+            >
+              {status.type === 'loading'
+                ? '…'
+                : mode === 'subscribe'
+                  ? 'Subscribe & read'
+                  : 'Sign in & read'}
+            </Button>
+          </div>
+          {/* Honeypot: hidden from humans, irresistible to bots. */}
+          <input
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            aria-hidden="true"
+            className="hidden"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+          />
+          <TurnstileWidget onToken={handleTurnstileToken} />
         </form>
       )}
       <div className="mt-3 flex items-center justify-between text-xs">

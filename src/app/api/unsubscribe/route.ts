@@ -1,29 +1,45 @@
 import { NextResponse } from 'next/server'
+
+import { verifyUnsubscribeToken } from '@/lib/reader-session'
+import { getEmailHash } from '@/lib/subscriber-crypto'
 import { sanityWriteClient } from '@/sanity/lib/client'
 
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json()
+    const body = await request.json().catch(() => ({}))
+    const token = typeof body?.token === 'string' ? body.token : null
 
+    const email = verifyUnsubscribeToken(token)
     if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'This unsubscribe link is invalid or has expired.' },
+        { status: 400 },
+      )
     }
 
-    const normalizedEmail = String(email).trim().toLowerCase()
+    const subscriber = await sanityWriteClient
+      .fetch<any>(`*[_type == "subscriber" && emailHash == $emailHash][0]`, {
+        emailHash: getEmailHash(email),
+      })
+      .catch(() => null)
 
-    const subscriber = await sanityWriteClient.fetch<any>(
-      `*[_type == "subscriber" && email == $email][0]`,
-      { email: normalizedEmail },
+    // Only flip active subscribers — blocked (spam) stays blocked, and
+    // missing docs get the same answer so the link reveals nothing.
+    if (subscriber && subscriber.status === 'active') {
+      await sanityWriteClient
+        .patch(subscriber._id)
+        .set({ status: 'inactive' })
+        .commit()
+    }
+
+    return NextResponse.json({
+      message: 'You have been unsubscribed and will receive no more emails.',
+    })
+  } catch (err) {
+    console.error('[unsubscribe] Unexpected error:', err)
+    return NextResponse.json(
+      { error: 'Something went wrong. Please try again shortly.' },
+      { status: 500 },
     )
-
-    if (!subscriber) {
-      return NextResponse.json({ message: 'Email not found' }, { status: 404 })
-    }
-
-    await sanityWriteClient.patch(subscriber._id).set({ status: 'inactive' }).commit()
-
-    return NextResponse.json({ message: 'Unsubscribed successfully' })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }

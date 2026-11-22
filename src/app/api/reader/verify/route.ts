@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { signMagicToken, isSubscriber } from '@/lib/reader-session'
 import { sendVerificationEmail } from '@/lib/mailer'
 import { upsertSubscriber } from '@/lib/subscribers'
+import { verifyTurnstileToken } from '@/lib/turnstile'
 import {
   validateEmail,
   isDisposableEmail,
@@ -33,6 +34,18 @@ export async function POST(request: Request) {
           "You're not subscribed yet, but we're making you one — check your inbox for a confirmation link.",
         pending: true,
       })
+    }
+
+    // Cloudflare Turnstile: humans only past this point.
+    const human = await verifyTurnstileToken(
+      body?.turnstileToken,
+      getRequestIp(request),
+    )
+    if (!human) {
+      return NextResponse.json(
+        { error: 'Human verification failed. Please refresh and try again.' },
+        { status: 400 },
+      )
     }
 
     const email = validateEmail(body?.email)

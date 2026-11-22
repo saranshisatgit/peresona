@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import { Button } from '@/components/Button'
+import { TurnstileWidget } from '@/components/TurnstileWidget'
 
 function MailIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
   return (
@@ -30,6 +31,14 @@ function MailIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
 export function PostSubscribeForm() {
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
+  const [website, setWebsite] = useState('') // honeypot
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+  const turnstileEnabled = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+
+  const handleTurnstileToken = useCallback(
+    (token: string | null) => setTurnstileToken(token),
+    [],
+  )
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -42,7 +51,8 @@ export function PostSubscribeForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: data.get('email'),
-          website: data.get('website'),
+          website,
+          turnstileToken,
           redirect: window.location.pathname,
         }),
       })
@@ -79,7 +89,11 @@ export function PostSubscribeForm() {
             className="w-full appearance-none rounded-[calc(var(--radius-md)-1px)] bg-white px-3 py-[calc(--spacing(2)-1px)] shadow-md shadow-zinc-800/5 outline outline-zinc-900/10 placeholder:text-zinc-400 focus:ring-4 focus:ring-teal-500/10 focus:outline-teal-500 sm:text-sm dark:bg-zinc-700/15 dark:text-zinc-200 dark:outline-zinc-700 dark:placeholder:text-zinc-500 dark:focus:ring-teal-400/10 dark:focus:outline-teal-400"
           />
         </span>
-        <Button type="submit" className="ml-4 flex-none" disabled={done}>
+        <Button
+          type="submit"
+          className="ml-4 flex-none"
+          disabled={done || (turnstileEnabled && !turnstileToken)}
+        >
           {done ? 'Sent!' : 'Subscribe'}
         </Button>
       </div>
@@ -98,7 +112,10 @@ export function PostSubscribeForm() {
         autoComplete="off"
         aria-hidden="true"
         className="hidden"
+        value={website}
+        onChange={(e) => setWebsite(e.target.value)}
       />
+      <TurnstileWidget onToken={handleTurnstileToken} />
     </form>
   )
 }
